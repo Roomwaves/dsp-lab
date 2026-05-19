@@ -1,31 +1,27 @@
 import numpy as np
 
 def moving_average(signal: np.ndarray, M: int, passes: int = 1) -> np.ndarray:
-    """Apply a moving average filter.
-    
-    Args:
-        signal: Input signal array
-        M: Filter window size
-        passes: Number of passes
     """
-    raise NotImplementedError
+    Filtro de media móvil.
+    Implementar el filtro de media móvil con soporte para 1, 2 y 3 pasadas consecutivas.
+    """
+    raise NotImplementedError("Implementar en Issue #1")
 
 def comb_filter(signal: np.ndarray, b0: float, b1: float, b2: float) -> np.ndarray:
-    """Apply a comb filter.
-    
-    Args:
-        signal: Input signal array
-        b0: b0 coefficient
-        b1: b1 coefficient
-        b2: b2 coefficient
     """
-    raise NotImplementedError
+    Filtro peine (comb filter).
+    Definido mediante tres coeficientes y dos muestras de retardo.
+    """
+    raise NotImplementedError("Implementar en Issue #2")
 
 def apply_fir(signal: np.ndarray, coefficients: np.ndarray) -> np.ndarray:
-    """Apply an FIR filter.
-    
-    Args:
-        signal: Input signal array
-        coefficients: Filter coefficients
     """
-    raise NotImplementedError
+    Aplica un filtro FIR con coeficientes arbitrarios.
+    """
+    raise NotImplementedError("Implementar en Issue #3")
+
+def truncate_fir(coefficients: np.ndarray, N: int) -> np.ndarray:
+    """
+    Trunca los coeficientes de un filtro FIR.
+    """
+    raise NotImplementedError("Implementar en Issue #3")

@@ -1,31 +1,39 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 def compute_fft(signal: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the FFT of a signal.
-    
-    Args:
-        signal: Input signal array
-        fs: Sampling frequency
     """
-    raise NotImplementedError
+    Calcula la Transformada de Fourier Discreta de una señal.
+    Retorna (frecuencias, magnitudes).
+    """
+    raise NotImplementedError("Implementar en Issue #5")
 
 def compute_frequency_response(x: np.ndarray, y: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the frequency response.
-    
-    Args:
-        x: Input signal
-        y: Output signal
-        fs: Sampling frequency
     """
-    raise NotImplementedError
+    Calcula la respuesta en frecuencia H(w) = Y(w) / X(w).
+    Retorna (frecuencias, H_complejo).
+    """
+    raise NotImplementedError("Implementar en Issue #6")
 
-def plot_spectrum(frequencies: np.ndarray, magnitudes: np.ndarray) -> None:
-    """Plot the spectrum.
-    
-    Args:
-        frequencies: Frequency array
-        magnitudes: Magnitude array
+def compute_magnitude_db(H: np.ndarray) -> np.ndarray:
     """
-    plt.plot(frequencies, magnitudes)
-    plt.show()
+    Calcula el módulo de la respuesta en frecuencia en dB.
+    """
+    raise NotImplementedError("Implementar en Issue #6")
+
+def compute_phase(H: np.ndarray) -> np.ndarray:
+    """
+    Calcula la fase de la respuesta en frecuencia en radianes.
+    """
+    raise NotImplementedError("Implementar en Issue #6")
+
+def convolve_time(signal: np.ndarray, h: np.ndarray) -> np.ndarray:
+    """
+    Realiza la convolución en el dominio del tiempo.
+    """
+    raise NotImplementedError("Implementar en Issue #7")
+
+def convolve_frequency(signal: np.ndarray, h: np.ndarray) -> np.ndarray:
+    """
+    Realiza la convolución circular en el dominio de la frecuencia.
+    """
+    raise NotImplementedError("Implementar en Issue #7")
