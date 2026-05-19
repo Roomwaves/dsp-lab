@@ -2,8 +2,8 @@
   "name": "dsp-analyzer",
   "private": true,
   "scripts": {
-    "dev":             "cd apps/desktop && npm run tauri:dev",
-    "build":           "cd apps/desktop && npm run tauri:build",
+    "dev":             "cd apps/desktop && npm run tauri dev",
+    "build":           "cd apps/desktop && npm run tauri build",
     "test:frontend":   "cd apps/desktop && npx vitest run",
     "test:python":     "uv run pytest",
     "test:all":        "uv run pytest && cd apps/desktop && npx vitest run",

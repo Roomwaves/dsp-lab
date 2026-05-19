@@ -1,16 +1,85 @@
+# =========================
+# Python / FastAPI / Tests
+# =========================
 __pycache__/
-.venv/
-*.pyc
-dist/
-build/
+*.py[cod]
+*.pyd
+*.so
 *.egg-info/
-.uv/
-node_modules/
-.env
-.env.local
-target/
-apps/desktop/src-tauri/target/
+.eggs/
+build/
+dist/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python tooling
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.hypothesis/
+
+# Jupyter
 .ipynb_checkpoints/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# =========================
+# Node / Vue / npm
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Vue / frontend build outputs
+dist/
+coverage/
+.vite/
+*.local
+
+# =========================
+# Rust
+# =========================
+target/
+Cargo.lock
+**/*.rs.bk
+
+# =========================
+# Tauri
+# =========================
+src-tauri/target/
+src-tauri/gen/
+src-tauri/*.log
+
+# Tauri / app artifacts
+tauri.conf.json.backup
+release/
+debug/
+
+# =========================
+# OS / Editor
+# =========================
 .DS_Store
 Thumbs.db
-docker/.env
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
