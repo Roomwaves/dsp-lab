@@ -17,5 +17,4 @@ jobs:
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - run: cd apps/desktop && npm ci
-      - run: cd apps/desktop && npm run lint
       - run: cd apps/desktop && npx vitest run

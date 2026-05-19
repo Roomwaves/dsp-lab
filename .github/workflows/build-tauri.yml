@@ -43,19 +43,20 @@ jobs:
       # 4. Compilar el Motor DSP
       - name: Compilar Sidecar de Python
         run: |
-          cd dsp-engine
           uv venv
-          uv pip install -r requirements.txt
+          uv pip install -r pyproject.toml
           uv pip install pyinstaller
-          uv run pyinstaller --onefile --noconsole main.py --name dsp-api
+          uv run pyinstaller --onefile --noconsole apps/api/main.py --name dsp-api
           
           # Movemos el binario compilado a una carpeta que Tauri pueda leer
-          mkdir -p ../src-tauri/binaries
-          mv dist/* ../src-tauri/binaries/
+          mkdir -p apps/desktop/src-tauri/binaries
+          mv dist/* apps/desktop/src-tauri/binaries/
 
       # 5. Instalar dependencias del Frontend
       - name: Instalar dependencias de Vue
-        run: npm ci
+        run: |
+          cd apps/desktop
+          npm ci
 
       # 6. Compilar Tauri y empaquetar todo junto
       - name: Compilar y adjuntar binarios al Release
@@ -64,3 +65,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           releaseId: ${{ github.event.release.id }}
+          projectPath: apps/desktop
