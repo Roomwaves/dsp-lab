@@ -1,0 +1,103 @@
+name: Auto SemVer Tag & Release
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next semver from PR title
+        id: semver
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+
+          title="$PR_TITLE"
+
+          case "$title" in
+            feat!:*|*'BREAKING CHANGE:'*)
+              bump="major"
+              ;;
+            feat:*)
+              bump="minor"
+              ;;
+            fix:*)
+              bump="patch"
+              ;;
+            *)
+              echo "No release rule matched for PR title: $title"
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+
+          last_tag="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+
+          if [ -z "$last_tag" ]; then
+            major=0
+            minor=0
+            patch=0
+          else
+            version="${last_tag#v}"
+            IFS='.' read -r major minor patch <<< "$version"
+          fi
+
+          case "$bump" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          next_tag="v${major}.${minor}.${patch}"
+
+          if git rev-parse -q --verify "refs/tags/${next_tag}" >/dev/null; then
+            echo "Tag already exists: $next_tag"
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+          echo "next_tag=$next_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: steps.semver.outputs.should_release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.semver.outputs.next_tag }}" -m "Release ${{ steps.semver.outputs.next_tag }}"
+          git push origin "${{ steps.semver.outputs.next_tag }}"
+
+      - name: Create GitHub Release
+        if: steps.semver.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.semver.outputs.next_tag }}
+          name: Release ${{ steps.semver.outputs.next_tag }}
+          generate_release_notes: true

@@ -1,0 +1,68 @@
+name: Compilar y Publicar Tauri
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, ubuntu-22.04, windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      # 1. Dependencias de Linux para la UI de Tauri
+      - name: Instalar dependencias de sistema (Solo Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      # 2. Configurar Node.js y Rust
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configurar Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # 3. Configurar UV
+      - name: Configurar uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      # 4. Compilar el Motor DSP
+      - name: Compilar Sidecar de Python
+        run: |
+          uv venv
+          uv pip install -r pyproject.toml
+          uv pip install pyinstaller
+          uv run pyinstaller --onefile --noconsole apps/api/main.py --name dsp-api
+          
+          # Movemos el binario compilado a una carpeta que Tauri pueda leer
+          mkdir -p apps/desktop/src-tauri/binaries
+          mv dist/* apps/desktop/src-tauri/binaries/
+
+      # 5. Instalar dependencias del Frontend
+      - name: Instalar dependencias de Vue
+        run: |
+          cd apps/desktop
+          npm ci
+
+      # 6. Compilar Tauri y empaquetar todo junto
+      - name: Compilar y adjuntar binarios al Release
+        uses: tauri-apps/tauri-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ github.event.release.id }}
+          projectPath: apps/desktop
