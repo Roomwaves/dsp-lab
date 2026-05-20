@@ -31,3 +31,8 @@ uv run pytest
 uv run pytest core/dsp/tests/test_filters.py        # single file
 uv run pytest -k "moving_average"                   # by test name
 ```
+
+## License
+
+This project is licensed under the PolyForm Noncommercial 1.0.0 license.
+Commercial use is not permitted without permission.
