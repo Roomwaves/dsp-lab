@@ -1,3 +1,5 @@
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -22,3 +24,8 @@ class FIRTruncateParams(BaseModel):
 
 class FilterOutput(BaseModel):
     samples: list[float]
+
+class ImpulseResponseParams(BaseModel):
+    filter_type: Literal["moving_average", "comb", "fir"]
+    params: dict[str, Any] = Field(..., description="Parameters for the specific filter") # noqa: E501
+    N: int = Field(default=100, gt=0, description="Length of the impulse response to generate") # noqa: E501
