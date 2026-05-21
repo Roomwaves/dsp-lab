@@ -1,103 +1,488 @@
 <script setup lang="ts">
-const { t } = useI18n();
 import { useI18n } from 'vue-i18n';
-import { generateSinePoints } from '../../utils/visualizations';
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
+import { IconPlus, IconTrash, IconDownload, IconPlayerPlay } from '@tabler/icons-vue';
+import { api } from '../../services/api';
+import WaveformPlot from '../../components/plots/WaveformPlot.vue';
+import SpectrumPlot from '../../components/plots/SpectrumPlot.vue';
 
-const sinePoints = computed(() => generateSinePoints());
+const { t } = useI18n();
+
+// Tone entries
+interface ToneEntry {
+  frequency: number;
+  amplitude: number;
+}
+
+const tones = ref<ToneEntry[]>([
+  { frequency: 440, amplitude: 1.0 },
+]);
+
+const fs = ref(44100);
+const duration = ref(1.0);
+const snrDb = ref(20);
+const applyNoise = ref(false);
+
+const fsOptions = [8000, 22050, 44100, 48000];
+const durationOptions = [0.5, 1, 2, 5];
+
+// Result
+const samples = ref<number[]>([]);
+const fftFrequencies = ref<number[]>([]);
+const fftMagnitudes = ref<number[]>([]);
+const isLoading = ref(false);
+const error = ref<string | null>(null);
+
+const hasSamples = computed(() => samples.value.length > 0);
+
+function addTone() {
+  tones.value.push({ frequency: 1000, amplitude: 0.5 });
+}
+
+function removeTone(i: number) {
+  if (tones.value.length > 1) tones.value.splice(i, 1);
+}
+
+async function generate() {
+  if (tones.value.length === 0) return;
+  isLoading.value = true;
+  error.value = null;
+  try {
+    const freqs = tones.value.map(t => t.frequency);
+    const amps = tones.value.map(t => t.amplitude);
+
+    let result = await api.generatePureTones(freqs, amps, fs.value, duration.value);
+    samples.value = result.samples;
+
+    if (applyNoise.value) {
+      result = await api.addWhiteNoise(result.samples, fs.value, snrDb.value);
+      samples.value = result.samples;
+    }
+
+    // Compute FFT for spectrum
+    const fftResult = await api.fft(samples.value, fs.value);
+    fftFrequencies.value = fftResult.frequencies;
+    fftMagnitudes.value = fftResult.magnitude;
+  } catch (e) {
+    error.value = (e as Error).message;
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+async function exportWav() {
+  if (!hasSamples.value) return;
+  try {
+    await api.downloadAudio(samples.value, fs.value);
+  } catch (e) {
+    error.value = (e as Error).message;
+  }
+}
 </script>
 
 <template>
-  <div class="tool-wrapper">
-    <div class="header">
-      <div class="title">{{ t('sidebar.signal_generator') }}</div>
-      <div class="subtitle">Pure tones + white noise</div>
+  <div class="sg-view">
+    <!-- TopBar -->
+    <div class="sg-topbar">
+      <span class="sg-title">{{ t('sidebar.signal_generator') }}</span>
+      <span class="sg-subtitle">Pure tones + white noise</span>
     </div>
-    
-    <div class="vis-box">
-      <svg width="100%" height="100" viewBox="0 480 100" preserveAspectRatio="none" style="display:block;" aria-hidden="true">
-        <polyline :points="sinePoints" fill="none" stroke="var(--color-border-info)" stroke-width="1.5"/>
-      </svg>
-      
-      <div class="stats-grid">
-        <div class="stat-box text-left">
-          <div class="stat-label">{{ t('controls.frequency') }}</div>
-          <div class="stat-value">440 Hz</div>
+
+    <!-- Inputs section -->
+    <div class="inputs-section">
+      <!-- Tones table -->
+      <div class="tones-panel">
+        <div class="panel-header">
+          <span class="panel-title">Tonos</span>
+          <button class="icon-btn" title="Agregar tono" @click="addTone">
+            <IconPlus size="13" />
+          </button>
         </div>
-        <div class="stat-box text-center">
-          <div class="stat-label">{{ t('controls.amplitude') }}</div>
-          <div class="stat-value">1.00</div>
+        <div class="tones-table">
+          <div class="table-head">
+            <span>Freq (Hz)</span>
+            <span>Amplitud</span>
+            <span></span>
+          </div>
+          <div
+            v-for="(tone, i) in tones"
+            :key="i"
+            class="table-row"
+          >
+            <input
+              :id="`sg-freq-${i}`"
+              v-model.number="tone.frequency"
+              type="number"
+              min="1"
+              :max="fs / 2"
+              step="1"
+              class="num-input"
+              placeholder="440"
+            />
+            <input
+              :id="`sg-amp-${i}`"
+              v-model.number="tone.amplitude"
+              type="number"
+              min="0"
+              max="1"
+              step="0.01"
+              class="num-input"
+              placeholder="1.0"
+            />
+            <button class="icon-btn danger" :disabled="tones.length === 1" @click="removeTone(i)">
+              <IconTrash size="12" />
+            </button>
+          </div>
         </div>
-        <div class="stat-box text-right">
-          <div class="stat-label">SNR</div>
-          <div class="stat-value">20 dB</div>
+      </div>
+
+      <!-- Settings column -->
+      <div class="settings-col">
+        <!-- Sample Rate -->
+        <div class="setting-group">
+          <label class="setting-label" for="sg-fs-select">Fs</label>
+          <select id="sg-fs-select" v-model.number="fs" class="select-ctrl">
+            <option v-for="f in fsOptions" :key="f" :value="f">{{ f >= 1000 ? f / 1000 + ' kHz' : f + ' Hz' }}</option>
+          </select>
         </div>
+
+        <!-- Duration -->
+        <div class="setting-group">
+          <label class="setting-label" for="sg-dur-select">Duración</label>
+          <select id="sg-dur-select" v-model.number="duration" class="select-ctrl">
+            <option v-for="d in durationOptions" :key="d" :value="d">{{ d }} s</option>
+          </select>
+        </div>
+
+        <!-- Noise -->
+        <div class="setting-group">
+          <label class="setting-label" for="sg-noise-toggle">Ruido</label>
+          <input id="sg-noise-toggle" v-model="applyNoise" type="checkbox" class="checkbox" />
+        </div>
+
+        <div v-if="applyNoise" class="setting-group">
+          <label class="setting-label" for="sg-snr-slider">SNR: {{ snrDb }} dB</label>
+          <input
+            id="sg-snr-slider"
+            v-model.number="snrDb"
+            type="range"
+            min="-10"
+            max="60"
+            step="1"
+            class="slider"
+          />
+        </div>
+
+        <!-- Generate button -->
+        <button
+          id="sg-generate-btn"
+          class="btn btn-primary"
+          :disabled="isLoading || tones.length === 0"
+          @click="generate"
+        >
+          <IconPlayerPlay size="13" />
+          {{ isLoading ? 'Generando…' : 'Generar' }}
+        </button>
+
+        <!-- Export button -->
+        <button
+          id="sg-export-btn"
+          class="btn btn-secondary"
+          :disabled="!hasSamples"
+          @click="exportWav"
+        >
+          <IconDownload size="13" />
+          Export .wav
+        </button>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div v-if="error" class="error-banner">{{ error }}</div>
+
+    <!-- Plots -->
+    <div class="plots-area">
+      <div class="plot-wrapper">
+        <div class="plot-title">Waveform</div>
+        <WaveformPlot
+          v-if="hasSamples"
+          id="sg-waveform-plot"
+          :samples="samples"
+          :fs="fs"
+          :height="0"
+          class="plot-fill"
+        />
+        <div v-else class="empty-plot">—</div>
+      </div>
+
+      <div class="plot-wrapper">
+        <div class="plot-title">Spectrum</div>
+        <SpectrumPlot
+          v-if="hasSamples"
+          id="sg-spectrum-plot"
+          :frequencies="fftFrequencies"
+          :magnitudes="fftMagnitudes"
+          :db-scale="true"
+          :log-frequency="true"
+          :height="0"
+          class="plot-fill"
+        />
+        <div v-else class="empty-plot">—</div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.tool-wrapper {
+.sg-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   width: 100%;
-  max-width: 500px;
+  overflow: hidden;
 }
 
-.header {
-  text-align: center;
-  margin-bottom: 20px;
+/* TopBar */
+.sg-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 0.5px solid var(--color-border);
+  flex-shrink: 0;
 }
 
-.title {
+.sg-title {
   font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 3px;
+  font-weight: 600;
 }
 
-.subtitle {
+.sg-subtitle {
   font-size: 11px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
-.vis-box {
-  background: var(--color-background-secondary);
-  border: 0.5px solid var(--color-border-tertiary);
-  border-radius: var(--border-radius-lg);
-  padding: 18px;
+/* Inputs section */
+.inputs-section {
+  display: flex;
+  gap: 16px;
+  padding: 14px 20px;
+  flex-shrink: 0;
+  border-bottom: 0.5px solid var(--color-border);
 }
 
-.stats-grid {
+/* Tones panel */
+.tones-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 0.5px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--color-accent-dim, rgba(0, 217, 126, 0.15));
+  color: var(--color-accent);
+}
+
+.icon-btn.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+}
+
+.icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.tones-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.table-head {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0;
-  margin-top: 14px;
-}
-
-.stat-box {
-  padding: 0 8px;
-}
-
-.text-left {
-  text-align: left;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.text-right {
-  text-align: right;
-}
-
-.stat-label {
+  grid-template-columns: 1fr 1fr 28px;
+  gap: 8px;
   font-size: 10px;
   color: var(--color-text-tertiary);
-  margin-bottom: 3px;
+  padding: 0 2px;
 }
 
-.stat-value {
-  font-size: 14px;
-  font-weight: 500;
+.table-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 28px;
+  gap: 8px;
+  align-items: center;
+}
+
+.num-input {
+  width: 100%;
+  padding: 5px 8px;
+  background: var(--color-bg-elevated);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  font-size: 12px;
   font-family: var(--font-mono);
+}
+
+/* Settings col */
+.settings-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+
+.setting-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.setting-label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  min-width: 62px;
+  flex-shrink: 0;
+}
+
+.select-ctrl {
+  flex: 1;
+  background: var(--color-bg-elevated);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.checkbox {
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.slider {
+  flex: 1;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--border-radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border: 0.5px solid var(--color-border);
+}
+
+/* Error */
+.error-banner {
+  margin: 0 20px 8px;
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 0.5px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--border-radius-md);
+  font-size: 12px;
+  color: #EF4444;
+  flex-shrink: 0;
+}
+
+/* Plots */
+.plots-area {
+  flex: 1;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  padding: 12px 16px;
+  overflow: hidden;
+}
+
+.plot-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.plot-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.plot-fill {
+  flex: 1;
+  height: 100% !important;
+}
+
+.plot-wrapper :deep(.spectrum-container),
+.plot-wrapper :deep(.waveform-container) {
+  height: 100% !important;
+}
+
+.empty-plot {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-md);
+  border: 0.5px solid var(--color-border);
 }
 </style>
