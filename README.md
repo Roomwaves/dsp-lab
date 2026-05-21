@@ -21,7 +21,8 @@ cd apps/desktop && npm install
 ### Development
 
 ```bash
-npm run docker:up     # starts FastAPI on localhost:8000
+npm run api:dev       # starts FastAPI on localhost:8000 without Docker
+npm run docker:up     # alternatively, starts FastAPI using Docker
 npm run dev           # starts Tauri + Vue (separate terminal)
 ```
 
