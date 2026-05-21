@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { useAppStore, type ToolId } from '../../stores/useAppStore';
-const { t } = useI18n();
-import { storeToRefs } from 'pinia';
+import { useAppStore } from '../../stores/useAppStore';
 import { useI18n } from 'vue-i18n';
 import { IconWaveSine, IconActivity, IconChartLine, IconChartHistogram, IconInfinity, IconAdjustmentsHorizontal, IconAntenna, IconBuilding, IconClock, IconSettings, IconChevronRight } from '@tabler/icons-vue';
+import { RouterLink } from 'vue-router';
 
+const { t } = useI18n();
 const appStore = useAppStore();
-const { activeTool } = storeToRefs(appStore);
-
-function pick(id: ToolId) {
-  appStore.setActiveTool(id);
-}
 </script>
 
 <template>
@@ -28,28 +23,28 @@ function pick(id: ToolId) {
     <nav class="nav">
       <p class="sec-label">{{ t('sidebar.analysis') }}</p>
       
-      <div class="nav-item" :class="{ active: activeTool === 'rta' }" @click="pick('rta')">
+      <RouterLink :to="{ name: 'rta' }" class="nav-item">
         <IconActivity size="17" /><span>{{ t('sidebar.rta') }}</span>
-      </div>
-      <div class="nav-item" :class="{ active: activeTool === 'tf' }" @click="pick('tf')">
+      </RouterLink>
+      <RouterLink :to="{ name: 'transfer-function' }" class="nav-item">
         <IconChartLine size="17" /><span>{{ t('sidebar.transfer_function') }}</span>
-      </div>
-      <div class="nav-item" :class="{ active: activeTool === 'spec' }" @click="pick('spec')">
+      </RouterLink>
+      <RouterLink :to="{ name: 'spectrogram' }" class="nav-item">
         <IconChartHistogram size="17" /><span>{{ t('sidebar.spectrogram') }}</span>
-      </div>
-      <div class="nav-item" :class="{ active: activeTool === 'coh' }" @click="pick('coh')">
+      </RouterLink>
+      <RouterLink :to="{ name: 'coherence' }" class="nav-item">
         <IconInfinity size="17" /><span>{{ t('sidebar.coherence') }}</span>
-      </div>
+      </RouterLink>
 
       <div class="divider"></div>
       
       <p class="sec-label">{{ t('sidebar.tools') }}</p>
-      <div class="nav-item" :class="{ active: activeTool === 'flt' }" @click="pick('flt')">
+      <RouterLink :to="{ name: 'filter-designer' }" class="nav-item">
         <IconAdjustmentsHorizontal size="17" /><span>{{ t('sidebar.filter_designer') }}</span>
-      </div>
-      <div class="nav-item" :class="{ active: activeTool === 'gen' }" @click="pick('gen')">
+      </RouterLink>
+      <RouterLink :to="{ name: 'signal-generator' }" class="nav-item">
         <IconAntenna size="17" /><span>{{ t('sidebar.signal_generator') }}</span>
-      </div>
+      </RouterLink>
 
       <div class="divider"></div>
       
@@ -80,8 +75,8 @@ function pick(id: ToolId) {
 .sidebar {
   width: 206px;
   min-width: 206px;
-  background: var(--color-background-secondary);
-  border-right: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-bg-secondary);
+  border-right: 0.5px solid var(--color-border);
   display: flex;
   flex-direction: column;
 }
@@ -118,7 +113,7 @@ function pick(id: ToolId) {
 
 .version {
   font-size: 10px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .nav {
@@ -129,7 +124,7 @@ function pick(id: ToolId) {
 
 .sec-label {
   font-size: 10px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   letter-spacing: 0.07em;
   padding: 0 12px;
   margin: 0 0 5px;
@@ -148,16 +143,17 @@ function pick(id: ToolId) {
   color: var(--color-text-secondary);
   transition: background 0.12s, color 0.12s;
   user-select: none;
+  text-decoration: none;
 }
 
 .nav-item:hover {
-  background: var(--color-background-tertiary);
+  background: var(--color-bg-elevated);
   color: var(--color-text-primary);
 }
 
-.nav-item.active {
-  background: var(--color-background-info);
-  color: var(--color-text-info);
+.nav-item.router-link-active {
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
 }
 
 .nav-item.disabled {
@@ -168,7 +164,7 @@ function pick(id: ToolId) {
 
 .divider {
   height: 1px;
-  background: var(--color-border-tertiary);
+  background: var(--color-border);
   margin: 9px 4px;
 }
 
@@ -177,13 +173,13 @@ function pick(id: ToolId) {
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 10px;
-  background: var(--color-background-tertiary);
-  color: var(--color-text-tertiary);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
 }
 
 .footer {
   padding: 8px;
-  border-top: 0.5px solid var(--color-border-tertiary);
+  border-top: 0.5px solid var(--color-border);
 }
 
 .settings-btn {
@@ -197,6 +193,6 @@ function pick(id: ToolId) {
 }
 
 .chevron {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 </style>

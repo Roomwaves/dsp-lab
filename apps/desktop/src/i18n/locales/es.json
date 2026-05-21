@@ -25,6 +25,9 @@
     "input_device_sub": "Micrófono por defecto",
     "sample_rate": "Frecuencia de muestreo",
     "buffer_size": "Tamaño de buffer",
+    "output_device": "Dispositivo de salida",
+    "output_device_sub": "Altavoz por defecto",
+    "latency_estimate": "Latencia estimada",
     "theme_light": "Claro",
     "theme_dark": "Oscuro",
     "theme_system": "Sistema"

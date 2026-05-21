@@ -25,6 +25,9 @@
     "input_device_sub": "Default microphone",
     "sample_rate": "Sample rate",
     "buffer_size": "Buffer size",
+    "output_device": "Output device",
+    "output_device_sub": "Default speaker",
+    "latency_estimate": "Latency estimate",
     "theme_light": "Light",
     "theme_dark": "Dark",
     "theme_system": "System"

@@ -1,30 +1,29 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/useAppStore';
-const { t } = useI18n();
-import { storeToRefs } from 'pinia';
-import { useI18n } from 'vue-i18n';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { IconActivity, IconChartLine, IconChartHistogram, IconInfinity, IconAdjustmentsHorizontal, IconAntenna } from '@tabler/icons-vue';
-// @ts-ignore
-import { toolMeta as metaData } from '../../utils/visualizations';
 
-const appStore = useAppStore();
-const { activeTool, language } = storeToRefs(appStore);
+const { t } = useI18n();
+const route = useRoute();
 
-const title = computed(() => t(metaData[activeTool.value].key, language.value));
+const title = computed(() => {
+  const name = route.name as string;
+  if (!name) return t('sidebar.rta');
+  return t(`sidebar.${name.replace('-', '_')}`);
+});
 
 const IconComponent = computed(() => {
-  switch (activeTool.value) {
+  switch (route.name) {
     case 'rta': return IconActivity;
-    case 'tf': return IconChartLine;
-    case 'spec': return IconChartHistogram;
-    case 'coh': return IconInfinity;
-    case 'flt': return IconAdjustmentsHorizontal;
-    case 'gen': return IconAntenna;
+    case 'transfer-function': return IconChartLine;
+    case 'spectrogram': return IconChartHistogram;
+    case 'coherence': return IconInfinity;
+    case 'filter-designer': return IconAdjustmentsHorizontal;
+    case 'signal-generator': return IconAntenna;
     default: return IconActivity;
   }
 });
-
 </script>
 
 <template>
@@ -70,11 +69,11 @@ const IconComponent = computed(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--color-background-success);
+  background: var(--color-accent);
 }
 
 .status-text {
   font-size: 12px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 </style>
