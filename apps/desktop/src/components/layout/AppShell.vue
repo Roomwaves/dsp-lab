@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AppSidebar from './AppSidebar.vue';
 import AppTopBar from './AppTopBar.vue';
-import WorkspacePanels from './WorkspacePanels.vue';
-import ToolsDrawer from './ToolsDrawer.vue';
+import WorkspacePanels from '../workspace/WorkspacePanels.vue';
+import ToolsDrawer from '../workspace/ToolsDrawer.vue';
 </script>
 
 <template>

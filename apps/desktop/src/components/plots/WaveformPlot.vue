@@ -1,17 +1,26 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue';
 
-interface Props {
+export interface WaveformTrace {
   samples: number[]
   fs: number
+  color: string
+  label: string
+}
+
+interface Props {
+  samples?: number[]
+  fs?: number
   label?: string          
   color?: string          
   height?: number         
+  traces?: WaveformTrace[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  color: '#00D97E', // Using the accent color hex as fallback
-  height: 200
+  color: '#00D97E', 
+  height: 200,
+  traces: () => []
 });
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
@@ -38,50 +47,81 @@ function draw() {
   const height = canvas.height / (window.devicePixelRatio || 1);
   ctx.clearRect(0, 0, width, height);
 
-  if (!props.samples || props.samples.length === 0) return;
+  const hasMainData = props.samples && props.samples.length > 0;
+  const hasTracesData = props.traces && props.traces.length > 0;
+  if (!hasMainData && !hasTracesData) return;
 
-  const displayData = props.samples.length > 10000 
-    ? downsample(props.samples, 2000) 
-    : props.samples;
+  let globalMin = 0;
+  let globalMax = 0;
 
-  let min = displayData[0];
-  let max = displayData[0];
-  for (let i = 1; i < displayData.length; i++) {
-    if (displayData[i] < min) min = displayData[i];
-    if (displayData[i] > max) max = displayData[i];
+  const findMinMax = (arr: number[]) => {
+    if (!arr || arr.length === 0) return;
+    for (const val of arr) {
+      if (val < globalMin) globalMin = val;
+      if (val > globalMax) globalMax = val;
+    }
+  };
+
+  if (props.samples) {
+    findMinMax(props.samples);
   }
-  
-  const range = (max - min) || 2;
-  const offset = min;
-
-  ctx.beginPath();
-  ctx.strokeStyle = props.color; 
-  ctx.lineWidth = 1.5;
-
-  for (let i = 0; i < displayData.length; i++) {
-    const x = (i / (displayData.length - 1)) * width;
-    const y = height - ((displayData[i] - offset) / range) * height;
-    
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  for (const t of props.traces) {
+    findMinMax(t.samples);
   }
-  ctx.stroke();
+
+  const range = (globalMax - globalMin) || 2;
+  const offset = globalMin;
+
+  const drawSignal = (data: number[], color: string) => {
+    const displayData = data.length > 10000 
+      ? downsample(data, 2000) 
+      : data;
+
+    ctx.beginPath();
+    ctx.strokeStyle = color; 
+    ctx.lineWidth = 1.5;
+
+    for (let i = 0; i < displayData.length; i++) {
+      const x = (i / (displayData.length - 1)) * width;
+      const y = height - ((displayData[i] - offset) / range) * height;
+      
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  };
+
+  // Draw traces
+  for (const t of props.traces) {
+    drawSignal(t.samples, t.color);
+  }
+
+  // Draw main signal
+  if (props.samples && props.samples.length > 0) {
+    drawSignal(props.samples, props.color);
+  }
 }
 
 function handleMouseMove(e: MouseEvent) {
-  if (!canvasRef.value || !props.samples || props.samples.length === 0) return;
+  const currentSamples = props.samples && props.samples.length > 0
+    ? props.samples
+    : (props.traces && props.traces.length > 0 ? props.traces[0].samples : null);
+    
+  const currentFs = props.fs || (props.traces && props.traces.length > 0 ? props.traces[0].fs : 44100);
+
+  if (!canvasRef.value || !currentSamples || currentSamples.length === 0) return;
   const rect = canvasRef.value.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const ratio = Math.max(0, Math.min(1, x / rect.width));
-  const index = Math.floor(ratio * (props.samples.length - 1));
+  const index = Math.floor(ratio * (currentSamples.length - 1));
   
-  if (index >= 0 && index < props.samples.length) {
+  if (index >= 0 && index < currentSamples.length) {
     tooltip.value = {
       show: true,
       x: x,
       y: e.clientY - rect.top,
-      time: index / props.fs,
-      value: props.samples[index]
+      time: index / currentFs,
+      value: currentSamples[index]
     };
   }
 }
@@ -95,7 +135,10 @@ function resize() {
     canvasRef.value.style.width = `${rect.width}px`;
     canvasRef.value.style.height = `${props.height}px`;
     const ctx = canvasRef.value.getContext('2d');
-    if (ctx) ctx.scale(dpr, dpr);
+    if (ctx) {
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
     draw();
   }
 }
@@ -109,7 +152,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', resize);
 });
 
-watch(() => props.samples, () => {
+watch([() => props.samples, () => props.traces, () => props.height], () => {
   requestAnimationFrame(draw);
 });
 </script>

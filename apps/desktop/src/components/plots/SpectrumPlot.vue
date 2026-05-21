@@ -1,19 +1,28 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue';
 
-interface Props {
+export interface SpectrumTrace {
   frequencies: number[]
   magnitudes: number[]
+  color: string
+  label: string
+}
+
+interface Props {
+  frequencies?: number[]
+  magnitudes?: number[]
   label?: string
   dbScale?: boolean       
   logFrequency?: boolean  
   height?: number
+  traces?: SpectrumTrace[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   dbScale: false,
   logFrequency: true,
-  height: 200
+  height: 200,
+  traces: () => []
 });
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
@@ -29,17 +38,31 @@ function draw() {
   const height = canvas.height / (window.devicePixelRatio || 1);
   ctx.clearRect(0, 0, width, height);
 
-  if (!props.frequencies || props.frequencies.length === 0) return;
+  // Check if we have any data to draw
+  const hasMainData = props.frequencies && props.magnitudes && props.frequencies.length > 0;
+  const hasTracesData = props.traces && props.traces.length > 0;
+  if (!hasMainData && !hasTracesData) return;
 
-  const fMin = 20;
-  const fMax = props.frequencies[props.frequencies.length - 1];
-  
+  let fMin = 20;
+  let fMax = 20000;
   let maxMag = 0;
   let currentMaxDb = -200;
-  for (const m of props.magnitudes) {
-    if (m > maxMag) maxMag = m;
-    const db = 20 * Math.log10(m + 1e-12);
-    if (db > currentMaxDb) currentMaxDb = db;
+
+  const processData = (freqs: number[], mags: number[]) => {
+    if (!freqs || freqs.length === 0) return;
+    fMax = Math.max(fMax, freqs[freqs.length - 1]);
+    for (const m of mags) {
+      if (m > maxMag) maxMag = m;
+      const db = 20 * Math.log10(m + 1e-12);
+      if (db > currentMaxDb) currentMaxDb = db;
+    }
+  };
+
+  if (props.frequencies && props.magnitudes) {
+    processData(props.frequencies, props.magnitudes);
+  }
+  for (const t of props.traces) {
+    processData(t.frequencies, t.magnitudes);
   }
 
   const maxDb = Math.max(0, Math.ceil(currentMaxDb / 10) * 10);
@@ -67,34 +90,50 @@ function draw() {
 
   // Draw 0 dB reference line
   if (props.dbScale) {
+    ctx.save();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.setLineDash([5, 5]);
     ctx.lineWidth = 1;
     const y0 = toY(1);
-    ctx.beginPath();
-    ctx.moveTo(0, y0);
-    ctx.lineTo(width, y0);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    if (y0 >= 0 && y0 <= height) {
+      ctx.beginPath();
+      ctx.moveTo(0, y0);
+      ctx.lineTo(width, y0);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
-  // Draw spectrum
-  ctx.beginPath();
-  ctx.strokeStyle = '#00D97E';
-  ctx.lineWidth = 1.5;
-
-  for (let i = 0; i < props.frequencies.length; i++) {
-    const f = props.frequencies[i];
-    const x = toX(f);
-    const y = toY(props.magnitudes[i]);
-    
-    if (i === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
+  // 1. Draw traces
+  for (const t of props.traces) {
+    if (t.frequencies && t.frequencies.length > 0 && t.magnitudes) {
+      ctx.beginPath();
+      ctx.strokeStyle = t.color;
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < t.frequencies.length; i++) {
+        const x = toX(t.frequencies[i]);
+        const y = toY(t.magnitudes[i]);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
     }
   }
-  ctx.stroke();
+
+  // 2. Draw main spectrum if present
+  if (props.frequencies && props.magnitudes) {
+    ctx.beginPath();
+    ctx.strokeStyle = '#00D97E';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < props.frequencies.length; i++) {
+      const f = props.frequencies[i];
+      const x = toX(f);
+      const y = toY(props.magnitudes[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
 }
 
 function resize() {
@@ -106,7 +145,10 @@ function resize() {
     canvasRef.value.style.width = `${rect.width}px`;
     canvasRef.value.style.height = `${props.height}px`;
     const ctx = canvasRef.value.getContext('2d');
-    if (ctx) ctx.scale(dpr, dpr);
+    if (ctx) {
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
     draw();
   }
 }
@@ -120,7 +162,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', resize);
 });
 
-watch([() => props.frequencies, () => props.magnitudes, () => props.dbScale, () => props.logFrequency], () => {
+watch([() => props.frequencies, () => props.magnitudes, () => props.dbScale, () => props.logFrequency, () => props.traces, () => props.height], () => {
   requestAnimationFrame(draw);
 });
 </script>

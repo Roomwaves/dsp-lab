@@ -181,6 +181,19 @@ export const useMeasurementSession = defineStore('measurementSession', () => {
     isComputing.value = false;
   }
 
+  /**
+   * Limpia una señal específica (x o y).
+   */
+  function clearSignal(slot: 'x' | 'y'): void {
+    if (slot === 'x') {
+      x.value = null;
+    } else {
+      y.value = null;
+    }
+    liveResult.value = null;
+    computeError.value = null;
+  }
+
   return {
     // State
     x, y, params, snapshots, liveResult, isComputing, computeError,
@@ -188,6 +201,7 @@ export const useMeasurementSession = defineStore('measurementSession', () => {
     hasSignals, hasLiveResult, visibleSnapshots, nextSnapshotColor, nextSnapshotLabel,
     // Actions
     loadSignal, compute, updateParams, captureSnapshot,
-    removeSnapshot, toggleSnapshot, renameSnapshot, resetSession,
+    removeSnapshot, toggleSnapshot, renameSnapshot, resetSession, clearSignal,
   };
 });
+
