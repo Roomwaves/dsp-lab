@@ -33,16 +33,21 @@
     "theme_system": "Sistema"
   },
   "status": {
-    "ready": "Listo"
+    "ready": "Listo",
+    "streaming": "Transmitiendo",
+    "computing": "Calculando…"
   },
   "controls": {
     "start": "Iniciar",
+    "stop": "Detener",
     "window": "Ventana",
     "overlap": "Solapamiento",
     "frequency": "Frecuencia",
     "amplitude": "Amplitud",
     "high_coh": "Alta coherencia < 1 kHz",
     "input": "Entrada",
-    "output": "Salida"
+    "output": "Salida",
+    "load": "Cargar .wav",
+    "compute": "Calcular H(ω)"
   }
 }
