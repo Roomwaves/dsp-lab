@@ -69,11 +69,11 @@ const IconComponent = computed(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--color-background-success);
+  background: var(--color-accent);
 }
 
 .status-text {
   font-size: 12px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 </style>

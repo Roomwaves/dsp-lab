@@ -175,7 +175,7 @@ function close() {
 
 .section-label {
   font-size: 10px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   letter-spacing: 0.07em;
   margin: 0 0 11px;
   font-weight: 500;
@@ -187,7 +187,7 @@ function close() {
   align-items: center;
   justify-content: space-between;
   padding: 11px 0;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 0.5px solid var(--color-border);
 }
 
 .s-row:last-of-type {
@@ -198,7 +198,7 @@ function close() {
   display: flex;
   flex-direction: column;
   padding: 11px 0;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 0.5px solid var(--color-border);
 }
 
 .s-row-col:last-of-type {
@@ -212,7 +212,7 @@ function close() {
 
 .row-sub {
   font-size: 11px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .btn-group {
@@ -221,8 +221,8 @@ function close() {
 }
 
 .opt-btn {
-  background: var(--color-background-secondary);
-  border: 1px solid var(--color-border-tertiary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   color: var(--color-text-secondary);
   border-radius: var(--border-radius-sm);
   padding: 4px 8px;
@@ -231,14 +231,14 @@ function close() {
 }
 
 .opt-btn.active {
-  background: var(--color-background-info);
-  color: var(--color-text-info);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
   border-color: transparent;
 }
 
 .custom-select {
-  background: var(--color-background-secondary);
-  border: 1px solid var(--color-border-tertiary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   color: var(--color-text-primary);
   border-radius: var(--border-radius-sm);
   padding: 6px;
@@ -252,22 +252,22 @@ function close() {
 
 .latency-estimate {
   font-size: 11px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .divider {
   height: 1px;
-  background: var(--color-border-tertiary);
+  background: var(--color-border);
   margin: 14px 0;
 }
 
 .chevron {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .footer-info {
   font-size: 11px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   text-align: center;
 }
 

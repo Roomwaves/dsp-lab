@@ -75,8 +75,8 @@ const appStore = useAppStore();
 .sidebar {
   width: 206px;
   min-width: 206px;
-  background: var(--color-background-secondary);
-  border-right: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-bg-secondary);
+  border-right: 0.5px solid var(--color-border);
   display: flex;
   flex-direction: column;
 }
@@ -113,7 +113,7 @@ const appStore = useAppStore();
 
 .version {
   font-size: 10px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .nav {
@@ -124,7 +124,7 @@ const appStore = useAppStore();
 
 .sec-label {
   font-size: 10px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   letter-spacing: 0.07em;
   padding: 0 12px;
   margin: 0 0 5px;
@@ -147,13 +147,13 @@ const appStore = useAppStore();
 }
 
 .nav-item:hover {
-  background: var(--color-background-tertiary);
+  background: var(--color-bg-elevated);
   color: var(--color-text-primary);
 }
 
 .nav-item.router-link-active {
-  background: var(--color-background-info);
-  color: var(--color-text-info);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
 }
 
 .nav-item.disabled {
@@ -164,7 +164,7 @@ const appStore = useAppStore();
 
 .divider {
   height: 1px;
-  background: var(--color-border-tertiary);
+  background: var(--color-border);
   margin: 9px 4px;
 }
 
@@ -173,13 +173,13 @@ const appStore = useAppStore();
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 10px;
-  background: var(--color-background-tertiary);
-  color: var(--color-text-tertiary);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
 }
 
 .footer {
   padding: 8px;
-  border-top: 0.5px solid var(--color-border-tertiary);
+  border-top: 0.5px solid var(--color-border);
 }
 
 .settings-btn {
@@ -193,6 +193,6 @@ const appStore = useAppStore();
 }
 
 .chevron {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 </style>

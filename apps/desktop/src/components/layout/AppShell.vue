@@ -26,7 +26,7 @@ import { RouterView } from 'vue-router';
   display: flex;
   height: 100vh;
   width: 100vw;
-  background-color: var(--color-background-primary);
+  background-color: var(--color-bg-primary);
   overflow: hidden;
   position: relative;
 }
