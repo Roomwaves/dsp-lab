@@ -69,11 +69,11 @@ impl FIRFilter {
         let m_minus_1 = self.m - 1;
 
         // Construct x_block = [overlap_buffer, input]
-        for i in 0..m_minus_1 {
-            self.x_block[i] = Complex::new(self.overlap_buffer[i], 0.0);
+        for (i, &val) in self.overlap_buffer.iter().enumerate() {
+            self.x_block[i] = Complex::new(val, 0.0);
         }
-        for i in 0..self.block_size {
-            self.x_block[m_minus_1 + i] = Complex::new(input[i], 0.0);
+        for (i, &val) in input.iter().enumerate() {
+            self.x_block[m_minus_1 + i] = Complex::new(val, 0.0);
         }
 
         // Forward FFT
@@ -91,8 +91,8 @@ impl FIRFilter {
         // Normalize because rustfft's IFFT is unnormalized
         let mut output = vec![0.0; self.block_size];
         let fft_size_f = self.fft_size as f32;
-        for i in 0..self.block_size {
-            output[i] = self.x_block[m_minus_1 + i].re / fft_size_f;
+        for (i, out_val) in output.iter_mut().enumerate() {
+            *out_val = self.x_block[m_minus_1 + i].re / fft_size_f;
         }
 
         // Update overlap buffer

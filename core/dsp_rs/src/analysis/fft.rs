@@ -35,9 +35,9 @@ impl StreamingFFT {
             window[0] = 1.0;
         } else {
             let mut sum = 0.0;
-            for n in 0..fft_size {
+            for (n, val_ref) in window.iter_mut().enumerate() {
                 let val = 0.5 * (1.0 - (2.0 * std::f32::consts::PI * n as f32 / (fft_size - 1) as f32).cos());
-                window[n] = val;
+                *val_ref = val;
                 sum += val;
             }
             if sum > 0.0 {
@@ -90,8 +90,8 @@ impl StreamingFFT {
             if self.prev_magnitudes.is_empty() {
                 self.prev_magnitudes = magnitudes.clone();
             } else {
-                for i in 0..half_size {
-                    self.prev_magnitudes[i] = alpha * self.prev_magnitudes[i] + (1.0 - alpha) * magnitudes[i];
+                for (prev_mag, &mag) in self.prev_magnitudes.iter_mut().zip(magnitudes.iter()) {
+                    *prev_mag = alpha * *prev_mag + (1.0 - alpha) * mag;
                 }
             }
             magnitudes = self.prev_magnitudes.clone();
