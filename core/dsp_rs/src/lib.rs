@@ -1,14 +1,7 @@
-pub fn convolve(signal: &[f64], kernel: &[f64]) -> Vec<f64> {
-    todo!("implement convolution")
-}
+pub mod error;
+pub mod filters;
+pub mod analysis;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    #[should_panic(expected = "implement convolution")]
-    fn test_convolve_placeholder() {
-        convolve(&[1.0], &[1.0]);
-    }
-}
+pub use error::DspError;
+pub use filters::{MovingAverageFilter, CombFilter, FIRFilter};
+pub use analysis::StreamingFFT;
