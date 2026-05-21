@@ -7,12 +7,12 @@ const session = useMeasurementSession();
 const flash = ref(false);
 
 function onCapture() {
-  if (!session.hasLiveResult) return;
+  if (!session.hasLiveResult || session.snapshots.length >= 8) return;
   session.captureSnapshot();
   flash.value = true;
   setTimeout(() => {
     flash.value = false;
-  }, 200);
+  }, 300);
 }
 </script>
 
@@ -48,7 +48,8 @@ function onCapture() {
       <button 
         class="capture-btn" 
         :class="{ flash }" 
-        :disabled="!session.hasLiveResult"
+        :disabled="!session.hasLiveResult || session.snapshots.length >= 8"
+        :title="session.snapshots.length >= 8 ? 'Máximo 8 capturas. Eliminá una para continuar.' : ''"
         @click="onCapture"
       >
         <IconCamera size="16" />
@@ -181,7 +182,6 @@ function onCapture() {
 }
 
 .capture-btn.flash {
-  background: var(--color-text-primary);
-  color: var(--color-bg-primary);
+  opacity: 0.3;
 }
 </style>

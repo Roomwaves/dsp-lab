@@ -1,13 +1,22 @@
 import type { FFTOutput, FrequencyResponseOutput, FilterOutput, CoherenceOutput, GeneratedSignalOutput } from '../types/dsp'
+import type { AnalysisParams } from '../types/session'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch (err) {
+    throw new Error(
+      "No se pudo conectar con el servidor API. Asegurate de que el backend esté corriendo (por ejemplo, con 'npm run docker:up' o 'npm run api:dev')."
+    )
+  }
+
   if (!res.ok) {
     const detail = await res.json().catch(() => ({}))
     throw new Error(detail?.detail ?? `API error ${res.status}`)
@@ -17,13 +26,26 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 
 export const api = {
-  uploadAudio: async (file: File) => {
+  uploadAudio: async (file: File): Promise<{
+    samples: number[]
+    fs: number
+    duration_s: number
+    channels: number
+  }> => {
     const formData = new FormData()
     formData.append('file', file)
-    const res = await fetch(`${API_BASE}/io/upload`, {
-      method: 'POST',
-      body: formData,
-    })
+    let res: Response
+    try {
+      res = await fetch(`${API_BASE}/io/upload`, {
+        method: 'POST',
+        body: formData,
+      })
+    } catch (err) {
+      throw new Error(
+        "No se pudo conectar con el servidor API. Asegurate de que el backend esté corriendo (por ejemplo, con 'npm run docker:up' o 'npm run api:dev')."
+      )
+    }
+
     if (!res.ok) {
       const detail = await res.json().catch(() => ({}))
       throw new Error(detail?.detail ?? `API error ${res.status}`)
@@ -31,14 +53,21 @@ export const api = {
     return res.json()
   },
 
-  fft: (samples: number[], fs: number) =>
-    post<FFTOutput>('/analysis/fft', { samples, fs }),
+  fft: (samples: number[], fs: number, params?: AnalysisParams) =>
+    post<FFTOutput>('/analysis/fft', { samples, fs, ...params }),
 
-  frequencyResponse: (x: number[], y: number[], fs: number) =>
-    post<FrequencyResponseOutput>('/analysis/frequency-response', { x, y, fs }),
+  frequencyResponse: (x: number[], y: number[], fs: number, params?: AnalysisParams) =>
+    post<FrequencyResponseOutput>('/analysis/frequency-response', { x, y, fs, ...params }),
 
-  coherence: (x: number[], y: number[], fs: number, averages = 8) =>
-    post<CoherenceOutput>('/analysis/coherence', { x, y, fs, averages }),
+  coherence: (x: number[], y: number[], fs: number, paramsOrAverages?: AnalysisParams | number) => {
+    const payload: any = { x, y, fs }
+    if (typeof paramsOrAverages === 'number') {
+      payload.averages = paramsOrAverages
+    } else if (paramsOrAverages) {
+      Object.assign(payload, paramsOrAverages)
+    }
+    return post<CoherenceOutput>('/analysis/coherence', payload)
+  },
 
   movingAverage: (samples: number[], M: number, passes = 1) =>
     post<FilterOutput>('/filters/moving-average', { samples, M, passes }),

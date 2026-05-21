@@ -41,14 +41,36 @@ export const useMeasurementSession = defineStore('measurementSession', () => {
    * Si ambos slots están llenos después de cargar, dispara compute().
    */
   async function loadSignal(slot: 'x' | 'y', file: File): Promise<void> {
+    const oldSignal = slot === 'x' ? x.value : y.value;
+    
+    // Poner el slot en estado de carga
+    if (slot === 'x') {
+      x.value = null;
+    } else {
+      y.value = null;
+    }
+
+    liveResult.value = null;
+    isComputing.value = true;
+    computeError.value = null;
+
     try {
-      const res = await api.uploadAudio(file);
+      // Validaciones locales antes de subir
+      if (file.size > 100 * 1024 * 1024) {
+        throw new Error("El archivo excede el tamaño máximo de 100MB.");
+      }
+      if (!file.name.toLowerCase().endsWith('.wav')) {
+        throw new Error("Formato de archivo inválido. Debe ser un archivo .wav.");
+      }
+
+      const result = await api.uploadAudio(file);
+
       const signal: ActiveSignal = {
         filename: file.name,
-        path: '', // The backend doesn't return the path, we can leave it empty
-        fs: res.fs,
-        duration: res.duration_s,
-        samples: res.samples,
+        path: '',
+        fs: result.fs,
+        duration: result.duration_s,
+        samples: result.samples,
       };
 
       if (slot === 'x') {
@@ -57,15 +79,27 @@ export const useMeasurementSession = defineStore('measurementSession', () => {
         y.value = signal;
       }
 
+      // Validar sample rates compatibles
+      const otherSignal = slot === 'x' ? y.value : x.value;
+      if (otherSignal && otherSignal.fs !== result.fs) {
+        computeError.value = `Sample rate incompatible: ${file.name} es ${result.fs} Hz pero la otra señal es ${otherSignal.fs} Hz. Ambas señales deben tener el mismo sample rate.`;
+        return;
+      }
+
       if (hasSignals.value) {
-        if (x.value!.fs !== y.value!.fs) {
-          computeError.value = `Sample rate mismatch: X is ${x.value!.fs}Hz, Y is ${y.value!.fs}Hz`;
-          return;
-        }
         await compute();
       }
+
     } catch (e) {
-      computeError.value = `Failed to load signal: ${(e as Error).message}`;
+      computeError.value = (e as Error).message;
+      // Restaurar el slot que ya tenía datos si falló la carga
+      if (slot === 'x') {
+        x.value = oldSignal;
+      } else {
+        y.value = oldSignal;
+      }
+    } finally {
+      isComputing.value = false;
     }
   }
 
@@ -75,9 +109,9 @@ export const useMeasurementSession = defineStore('measurementSession', () => {
    * Actualiza liveResult con el resultado consolidado.
    */
   async function compute(): Promise<void> {
-    if (!hasSignals.value) return;
-    if (x.value!.fs !== y.value!.fs) {
-      computeError.value = `Sample rate mismatch: X is ${x.value!.fs}Hz, Y is ${y.value!.fs}Hz`;
+    if (!x.value || !y.value) return;
+    if (x.value.fs !== y.value.fs) {
+      computeError.value = `Sample rate incompatible: ${x.value.filename} es ${x.value.fs} Hz pero ${y.value.filename} es ${y.value.fs} Hz. Ambas señales deben tener el mismo sample rate.`;
       return;
     }
 
@@ -85,27 +119,31 @@ export const useMeasurementSession = defineStore('measurementSession', () => {
     computeError.value = null;
 
     try {
-      const fs = x.value!.fs;
-      const xSamples = x.value!.samples;
-      const ySamples = y.value!.samples;
+      const xSamples = x.value.samples;
+      const ySamples = y.value.samples;
+      const fs = x.value.fs;
+      const p = params.value;
 
-      const [freqResp, coher, fftX, fftY] = await Promise.all([
-        api.frequencyResponse(xSamples, ySamples, fs),
-        api.coherence(xSamples, ySamples, fs), // api takes (x, y, fs, averages?)
-        api.fft(xSamples, fs),
-        api.fft(ySamples, fs),
+      // Las 4 llamadas son independientes — ir en paralelo
+      const [freqResponse, coherenceResult, fftX, fftY] = await Promise.all([
+        api.frequencyResponse(xSamples, ySamples, fs, p),
+        api.coherence(xSamples, ySamples, fs, p),
+        api.fft(xSamples, fs, p),
+        api.fft(ySamples, fs, p),
       ]);
 
       liveResult.value = {
-        frequencies: freqResp.frequencies,
-        magnitude_db: freqResp.magnitude_db,
-        phase_rad: freqResp.phase_rad,
-        coherence: coher.coherence,
+        frequencies: freqResponse.frequencies,
+        magnitude_db: freqResponse.magnitude_db,
+        phase_rad: freqResponse.phase_rad,
+        coherence: coherenceResult.coherence,
         spectrum_x: fftX.magnitudes,
         spectrum_y: fftY.magnitudes,
       };
+
     } catch (e) {
       computeError.value = (e as Error).message;
+      // liveResult NO se nullifica — mantiene el último resultado válido
     } finally {
       isComputing.value = false;
     }
@@ -126,6 +164,10 @@ export const useMeasurementSession = defineStore('measurementSession', () => {
    */
   function captureSnapshot(): Snapshot | null {
     if (!liveResult.value || !x.value || !y.value) return null;
+
+    if (snapshots.value.length >= 8) {
+      throw new Error("Máximo 8 capturas. Eliminá una para continuar.");
+    }
 
     const snapshot: Snapshot = {
       id: uuidv4(),

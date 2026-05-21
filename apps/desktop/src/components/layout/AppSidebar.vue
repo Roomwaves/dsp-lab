@@ -82,6 +82,8 @@ function truncateFilename(name: string, maxLen = 22) {
 }
 
 function triggerFilePicker(slot: 'x' | 'y') {
+  const isLoading = slot === 'x' ? isLoadingX.value : isLoadingY.value;
+  if (isLoading) return;
   if (slot === 'x') {
     fileInputX.value?.click();
   } else {
@@ -90,6 +92,8 @@ function triggerFilePicker(slot: 'x' | 'y') {
 }
 
 function onFileSelected(slot: 'x' | 'y', event: Event) {
+  const isLoading = slot === 'x' ? isLoadingX.value : isLoadingY.value;
+  if (isLoading) return;
   const file = (event.target as HTMLInputElement).files?.[0];
   if (file) {
     handleFile(slot, file);
@@ -98,6 +102,8 @@ function onFileSelected(slot: 'x' | 'y', event: Event) {
 }
 
 function onFileDrop(slot: 'x' | 'y', event: DragEvent) {
+  const isLoading = slot === 'x' ? isLoadingX.value : isLoadingY.value;
+  if (isLoading) return;
   const file = event.dataTransfer?.files?.[0];
   if (file) {
     handleFile(slot, file);
@@ -105,8 +111,17 @@ function onFileDrop(slot: 'x' | 'y', event: DragEvent) {
 }
 
 async function handleFile(slot: 'x' | 'y', file: File) {
+  const isLoading = slot === 'x' ? isLoadingX.value : isLoadingY.value;
+  if (isLoading) return;
+
   if (slot === 'x') errorX.value = null;
   else errorY.value = null;
+
+  if (file.size > 100 * 1024 * 1024) {
+    if (slot === 'x') errorX.value = 'El archivo excede el tamaño máximo de 100MB.';
+    else errorY.value = 'El archivo excede el tamaño máximo de 100MB.';
+    return;
+  }
 
   if (!file.name.toLowerCase().endsWith('.wav')) {
     if (slot === 'x') errorX.value = 'Solo archivos .wav';
@@ -187,6 +202,11 @@ function deleteSnapshot(id: string) {
 
     <!-- Sidebar content -->
     <div class="sidebar-content">
+      <!-- Session Error Banner -->
+      <div v-if="session.computeError" class="session-error-banner">
+        {{ session.computeError }}
+      </div>
+
       <!-- Section SEÑALES -->
       <div class="section">
         <p class="section-title">SEÑALES</p>
@@ -208,7 +228,7 @@ function deleteSnapshot(id: string) {
               accept=".wav"
               @change="onFileSelected('x', $event)"
             />
-            <div v-if="isLoadingX" class="status-inner">
+            <div v-if="isLoadingX" class="status-inner" @click.stop>
               <span class="spinner"></span>
               <span class="loading-text">Subiendo...</span>
             </div>
@@ -307,11 +327,11 @@ function deleteSnapshot(id: string) {
       <!-- Section CAPTURAS -->
       <div class="section">
         <p class="section-title">CAPTURAS</p>
-        <div class="snapshots-list">
-          <div v-if="session.snapshots.length === 0" class="empty-snapshots">
-            (vacío — sin capturas aún)
-          </div>
-          <div v-else v-for="s in session.snapshots" :key="s.id" class="snapshot-item">
+        <div v-if="session.snapshots.length === 0" class="empty-snapshots">
+          (vacío — sin capturas aún)
+        </div>
+        <TransitionGroup v-else name="snapshot-list" tag="div" class="snapshots-list">
+          <div v-for="s in session.snapshots" :key="s.id" class="snapshot-item">
             <span
               class="dot-toggle"
               :style="{ backgroundColor: s.visible ? s.color : 'transparent', color: s.color }"
@@ -331,7 +351,7 @@ function deleteSnapshot(id: string) {
             </span>
             <button class="snapshot-delete" @click="deleteSnapshot(s.id)">✕</button>
           </div>
-        </div>
+        </TransitionGroup>
       </div>
     </div>
 
@@ -680,5 +700,29 @@ function deleteSnapshot(id: string) {
 
 .chevron {
   color: var(--color-text-secondary);
+}
+
+.session-error-banner {
+  padding: 8px 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 0.5px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--border-radius-md);
+  font-size: 11px;
+  color: #EF4444;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.snapshot-list-enter-active,
+.snapshot-list-leave-active {
+  transition: all 0.3s ease;
+}
+.snapshot-list-enter-from {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+.snapshot-list-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
 }
 </style>
