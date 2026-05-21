@@ -25,8 +25,8 @@ const error = ref<string | null>(null);
 const result = ref<FrequencyResponseOutput | null>(null);
 
 const frequencies = computed(() => result.value?.frequencies ?? []);
-const magnitudeDb = computed(() => result.value?.magnitude ?? []);
-const phaseRad = computed(() => result.value?.phase ?? []);
+const magnitudeDb = computed(() => result.value?.magnitude_db ?? []);
+const phaseRad = computed(() => result.value?.phase_rad ?? []);
 const hasResult = computed(() => frequencies.value.length > 0);
 
 async function readWav(file: File): Promise<number[]> {

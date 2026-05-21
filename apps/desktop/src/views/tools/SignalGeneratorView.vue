@@ -62,7 +62,7 @@ async function generate() {
     // Compute FFT for spectrum
     const fftResult = await api.fft(samples.value, fs.value);
     fftFrequencies.value = fftResult.frequencies;
-    fftMagnitudes.value = fftResult.magnitude;
+    fftMagnitudes.value = fftResult.magnitudes;
   } catch (e) {
     error.value = (e as Error).message;
   } finally {

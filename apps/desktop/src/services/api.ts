@@ -17,6 +17,20 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 
 export const api = {
+  uploadAudio: async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`${API_BASE}/io/upload`, {
+      method: 'POST',
+      body: formData,
+    })
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}))
+      throw new Error(detail?.detail ?? `API error ${res.status}`)
+    }
+    return res.json()
+  },
+
   fft: (samples: number[], fs: number) =>
     post<FFTOutput>('/analysis/fft', { samples, fs }),
 

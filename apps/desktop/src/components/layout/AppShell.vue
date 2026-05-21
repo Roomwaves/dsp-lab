@@ -1,62 +1,45 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
-import { useAudioStore } from '../../stores/useAudioStore';
 import AppSidebar from './AppSidebar.vue';
 import AppTopBar from './AppTopBar.vue';
-import SettingsPanel from './SettingsPanel.vue';
-import { RouterView } from 'vue-router';
-
-const audioStore = useAudioStore();
-
-onMounted(async () => {
-  await audioStore.listenToStreamEvents();
-  await audioStore.loadDevices();
-});
-
-onUnmounted(() => {
-  audioStore.cleanup();
-});
+import WorkspacePanels from './WorkspacePanels.vue';
+import ToolsDrawer from './ToolsDrawer.vue';
 </script>
 
 <template>
-  <div class="app-layout">
-    <AppSidebar />
+  <div class="app-shell">
+    <AppTopBar />
 
-    <div class="main-content">
-      <AppTopBar />
-      
-      <div class="tool-container">
-        <RouterView />
+    <div class="app-body">
+      <AppSidebar />         <!-- sidebar izquierda: I/O + snapshots (issue #58) -->
+
+      <div class="workspace">
+        <WorkspacePanels />  <!-- paneles con toggles (issue #59) -->
+        <ToolsDrawer />      <!-- panel inferior colapsable (issue #60) -->
       </div>
     </div>
-
-    <SettingsPanel />
   </div>
 </template>
 
 <style scoped>
-.app-layout {
+.app-shell {
   display: flex;
+  flex-direction: column;
   height: 100vh;
-  width: 100vw;
-  background-color: var(--color-bg-primary);
   overflow: hidden;
-  position: relative;
+  background: var(--color-bg-primary);
 }
 
-.main-content {
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;   /* crítico: evita scroll en el shell */
+}
+
+.workspace {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-}
-
-.tool-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 28px;
-  overflow: auto;
+  overflow: hidden;
+  min-width: 0;       /* fix: flex children pueden colapsar */
 }
 </style>
