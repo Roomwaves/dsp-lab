@@ -1,7 +1,4 @@
-import pytest
 import matplotlib
-import matplotlib.pyplot as plt
-from core.dsp.plots import plot_signal, plot_spectrum, plot_frequency_response, plot_coherence
 
 # Configuramos matplotlib para que no intente abrir ventanas durante los tests
 matplotlib.use('Agg')

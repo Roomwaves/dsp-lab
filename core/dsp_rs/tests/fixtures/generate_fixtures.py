@@ -1,6 +1,8 @@
-import numpy as np
 import os
+
+import numpy as np
 import scipy.signal
+
 
 def main():
     dir_path = os.path.dirname(os.path.abspath(__file__))

@@ -1,6 +1,3 @@
-import pytest
-import numpy as np
-from core.dsp.filters import moving_average, comb_filter, apply_fir, truncate_fir
 
 # --- Tests para Issue #1: moving_average ---
 

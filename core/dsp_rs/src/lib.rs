@@ -5,3 +5,4 @@ pub mod analysis;
 pub use error::DspError;
 pub use filters::{MovingAverageFilter, CombFilter, FIRFilter};
 pub use analysis::StreamingFFT;
+pub use rustfft;

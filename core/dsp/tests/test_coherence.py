@@ -1,6 +1,3 @@
-import pytest
-import numpy as np
-from core.dsp.coherence import compute_psd, compute_cpsd, compute_coherence
 
 # --- Tests para Issue #8: PSD y CPSD ---
 

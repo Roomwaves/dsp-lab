@@ -1,6 +1,3 @@
-import pytest
-import numpy as np
-from core.dsp.signals import generate_pure_tones, add_white_noise
 
 # --- Tests para Issue #4: generate_pure_tones ---
 

@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.signal
 
+
 def moving_average(signal: np.ndarray, M: int, passes: int = 1) -> np.ndarray:
     """
     Filtro de media móvil.
