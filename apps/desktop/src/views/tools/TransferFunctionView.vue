@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/useAppStore';
-import { storeToRefs } from 'pinia';
-import { t } from '../../utils/i18n';
+const { t } = useI18n();
+import { useI18n } from 'vue-i18n';
 
-const appStore = useAppStore();
-const { language } = storeToRefs(appStore);
 </script>
 
 <template>
   <div class="tool-wrapper">
     <div class="header">
-      <div class="title">{{ t('n-tf', language) }}</div>
+      <div class="title">{{ t('sidebar.transfer_function') }}</div>
       <div class="subtitle">H(ω) = Y(ω) / X(ω)</div>
     </div>
     
@@ -30,8 +27,8 @@ const { language } = storeToRefs(appStore);
     </div>
     
     <div class="controls">
-      <span class="pill">Ch1 {{ t('input', language) }}</span>
-      <span class="pill">Ch2 {{ t('output', language) }}</span>
+      <span class="pill">Ch1 {{ t('controls.input') }}</span>
+      <span class="pill">Ch2 {{ t('controls.output') }}</span>
       <span class="pill">Avg: 8</span>
     </div>
   </div>

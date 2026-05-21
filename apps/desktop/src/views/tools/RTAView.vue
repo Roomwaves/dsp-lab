@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/useAppStore';
-import { storeToRefs } from 'pinia';
-import { t } from '../../utils/i18n';
+const { t } = useI18n();
+import { useI18n } from 'vue-i18n';
 import { generateBars } from '../../utils/visualizations';
 import { computed } from 'vue';
 import { IconPlayerPlay } from '@tabler/icons-vue';
-
-const appStore = useAppStore();
-const { language } = storeToRefs(appStore);
 
 const bars = computed(() => generateBars(58));
 </script>
@@ -15,8 +11,8 @@ const bars = computed(() => generateBars(58));
 <template>
   <div class="tool-wrapper">
     <div class="header">
-      <div class="title">{{ t('n-rta', language) }}</div>
-      <div class="subtitle">{{ t('frequency', language) }} spectrum · FFT 4096</div>
+      <div class="title">{{ t('sidebar.rta') }}</div>
+      <div class="subtitle">{{ t('controls.frequency') }} spectrum · FFT 4096</div>
     </div>
     
     <div class="vis-box">
@@ -34,7 +30,7 @@ const bars = computed(() => generateBars(58));
     </div>
     
     <div class="controls">
-      <span class="pill action-btn"><IconPlayerPlay size="12" />{{ t('start', language) }}</span>
+      <span class="pill action-btn"><IconPlayerPlay size="12" />{{ t('controls.start') }}</span>
       <span class="pill">FFT: 4096</span>
       <span class="pill">44 100 Hz</span>
     </div>

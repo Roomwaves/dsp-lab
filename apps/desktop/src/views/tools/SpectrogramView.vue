@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/useAppStore';
-import { storeToRefs } from 'pinia';
-import { t } from '../../utils/i18n';
+const { t } = useI18n();
+import { useI18n } from 'vue-i18n';
 import { generateSpectrogram } from '../../utils/visualizations';
 import { computed } from 'vue';
-
-const appStore = useAppStore();
-const { language } = storeToRefs(appStore);
 
 const cols = 36;
 const rows = 7;
@@ -16,7 +12,7 @@ const spectrogramData = computed(() => generateSpectrogram(cols, rows));
 <template>
   <div class="tool-wrapper">
     <div class="header">
-      <div class="title">{{ t('n-spec', language) }}</div>
+      <div class="title">{{ t('sidebar.spectrogram') }}</div>
       <div class="subtitle">Time–frequency representation</div>
     </div>
     
@@ -38,8 +34,8 @@ const spectrogramData = computed(() => generateSpectrogram(cols, rows));
     
     <div class="controls">
       <span class="pill">FFT: 2048</span>
-      <span class="pill">{{ t('window', language) }}: Hann</span>
-      <span class="pill">{{ t('overlap', language) }}: 75%</span>
+      <span class="pill">{{ t('controls.window') }}: Hann</span>
+      <span class="pill">{{ t('controls.overlap') }}: 75%</span>
     </div>
   </div>
 </template>

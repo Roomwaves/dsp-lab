@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/useAppStore';
-import { storeToRefs } from 'pinia';
-import { t } from '../../utils/i18n';
+const { t } = useI18n();
+import { useI18n } from 'vue-i18n';
 
-const appStore = useAppStore();
-const { language } = storeToRefs(appStore);
 </script>
 
 <template>
   <div class="tool-wrapper">
     <div class="header">
-      <div class="title">{{ t('n-coh', language) }}</div>
+      <div class="title">{{ t('sidebar.coherence') }}</div>
       <div class="subtitle">γ²(ω) = |Gₓᵧ|² / Gₓₓ · Gᵧᵧ</div>
     </div>
     
@@ -36,7 +33,7 @@ const { language } = storeToRefs(appStore);
     </div>
     
     <div class="controls">
-      <span class="pill success-pill">{{ t('high-coh', language) }}</span>
+      <span class="pill success-pill">{{ t('controls.high_coh') }}</span>
     </div>
   </div>
 </template>
