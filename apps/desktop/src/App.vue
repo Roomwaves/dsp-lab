@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAppStore } from './stores/app';
+import { useAppStore } from './stores/useAppStore';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import Sidebar from './components/layout/Sidebar.vue';

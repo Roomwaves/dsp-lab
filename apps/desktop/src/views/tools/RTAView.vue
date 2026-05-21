@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/app';
+import { useAppStore } from '../../stores/useAppStore';
 import { storeToRefs } from 'pinia';
 import { t } from '../../utils/i18n';
 import { generateBars } from '../../utils/visualizations';

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAppStore, type ToolId } from '../../stores/app';
+import { useAppStore, type ToolId } from '../../stores/useAppStore';
 import { storeToRefs } from 'pinia';
 import { t } from '../../utils/i18n';
 import { IconWaveSine, IconActivity, IconChartLine, IconChartHistogram, IconInfinity, IconAdjustmentsHorizontal, IconAntenna, IconBuilding, IconClock, IconSettings, IconChevronRight } from '@tabler/icons-vue';
