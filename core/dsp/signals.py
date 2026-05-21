@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def generate_pure_tones(frequencies: list[float], amplitudes: list[float], fs: float, duration: float) -> np.ndarray:
     """
     Genera una señal suma de tonos puros.

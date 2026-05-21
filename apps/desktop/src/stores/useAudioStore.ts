@@ -22,7 +22,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed, shallowRef } from 'vue'
+import { ref, computed, shallowRef, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
@@ -34,6 +34,10 @@ import type {
   StreamState,
 } from '../types/audio'
 import { useSignalStore } from './useSignalStore'
+
+export type FftSize = 1024 | 2048 | 4096
+export type WindowType = 'hann' | 'hamming' | 'blackman' | 'rectangular'
+export type AvgMode = 'off' | 8 | 16
 
 // ---------------------------------------------------------------------------
 // Claves de localStorage
@@ -78,10 +82,17 @@ export const useAudioStore = defineStore('audio', () => {
   // ── Config activa ─────────────────────────────────────────────────────────
   /** Dispositivo de input seleccionado. */
   const selectedInputDevice = ref<AudioDeviceInfo | null>(null)
+  /** Dispositivo de output seleccionado. */
+  const selectedOutputDevice = ref<AudioDeviceInfo | null>(null)
   /** Sample rate activo (Hz). */
   const selectedSampleRate  = ref<number>(lsGet(LS_SAMPLE_RATE, 44100))
   /** Tamaño de buffer (samples). */
   const selectedBufferSize  = ref<number>(lsGet(LS_BUFFER_SIZE, 512))
+
+  // ── RTA Config ────────────────────────────────────────────────────────────
+  const fftSize = ref<FftSize>(2048)
+  const windowType = ref<WindowType>('hann')
+  const avgMode = ref<AvgMode>('off')
 
   // ── Validación (#48) ──────────────────────────────────────────────────────
   /** Error de validación de config (sample rate/canales/buffer incompatibles). */
@@ -138,12 +149,20 @@ export const useAudioStore = defineStore('audio', () => {
       inputDevices.value  = inputs
       outputDevices.value = outputs
 
-      // Restaurar selección persistida
+      // Restaurar selección de input persistida
       const savedId = lsGet<string | null>(LS_DEVICE_ID, null)
       if (savedId) {
         selectedInputDevice.value = inputs.find(d => d.id === savedId) ?? inputs[0] ?? null
       } else {
         selectedInputDevice.value = inputs.find(d => d.is_default) ?? inputs[0] ?? null
+      }
+
+      // Restaurar selección de output persistida
+      const savedOutputId = lsGet<string | null>('audio.outputDeviceId', null)
+      if (savedOutputId) {
+        selectedOutputDevice.value = outputs.find(d => d.id === savedOutputId) ?? outputs[0] ?? null
+      } else {
+        selectedOutputDevice.value = outputs.find(d => d.is_default) ?? outputs[0] ?? null
       }
     } catch (err) {
       streamError.value = (err as Error).message ?? String(err)
@@ -379,6 +398,14 @@ export const useAudioStore = defineStore('audio', () => {
     }
   }
 
+  // Watch input device changes to automatically update supported rates and validation
+  watch(selectedInputDevice, async (newDev) => {
+    if (newDev) {
+      await loadSupportedSampleRates()
+      await validateConfig()
+    }
+  }, { immediate: true })
+
   // ── Retorno del store ─────────────────────────────────────────────────────
   return {
     // Dispositivos
@@ -386,6 +413,7 @@ export const useAudioStore = defineStore('audio', () => {
     outputDevices,
     // Config activa
     selectedInputDevice,
+    selectedOutputDevice,
     selectedSampleRate,
     selectedBufferSize,
     channelRouting,
@@ -399,7 +427,26 @@ export const useAudioStore = defineStore('audio', () => {
     // Compat
     isStreaming,
     /** @deprecated Usar selectedInputDevice */
-    selectedInput: computed(() => selectedInputDevice.value?.id ?? ''),
+    selectedInput: computed({
+      get: () => selectedInputDevice.value?.id ?? '',
+      set: (id: string) => {
+        const dev = inputDevices.value.find(d => d.id === id)
+        if (dev) {
+          selectedInputDevice.value = dev
+          _persistConfig()
+        }
+      }
+    }),
+    selectedOutput: computed({
+      get: () => selectedOutputDevice.value?.id ?? '',
+      set: (id: string) => {
+        const dev = outputDevices.value.find(d => d.id === id)
+        if (dev) {
+          selectedOutputDevice.value = dev
+          lsSet('audio.outputDeviceId', id)
+        }
+      }
+    }),
     /** @deprecated Usar selectedSampleRate */
     sampleRate: selectedSampleRate,
     /** @deprecated Usar selectedBufferSize */
@@ -422,6 +469,10 @@ export const useAudioStore = defineStore('audio', () => {
     // Compat (síncrono → async)
     startStreamSync,
     stopStreamSync,
+    // RTA config
+    fftSize,
+    windowType,
+    avgMode,
     // RTA legacy (fftSize, windowType, avgMode los mantiene RTAView localmente)
   }
 })

@@ -62,8 +62,8 @@ import { useI18n } from 'vue-i18n';
 }
 
 .vis-box {
-  background: var(--color-background-secondary);
-  border: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
   padding: 18px;
 }
@@ -82,17 +82,17 @@ import { useI18n } from 'vue-i18n';
 
 .top-line {
   top: 0;
-  background: var(--color-border-secondary);
+  background: var(--color-border);
 }
 
 .mid-line {
   top: 50%;
-  background: var(--color-border-tertiary);
+  background: var(--color-border);
 }
 
 .bot-line {
   bottom: 0;
-  background: var(--color-border-tertiary);
+  background: var(--color-border);
 }
 
 .label {

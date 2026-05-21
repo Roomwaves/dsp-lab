@@ -63,8 +63,8 @@ const spectrogramData = computed(() => generateSpectrogram(cols, rows));
 }
 
 .vis-box {
-  background: var(--color-background-secondary);
-  border: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
   padding: 18px;
 }
