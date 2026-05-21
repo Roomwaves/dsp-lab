@@ -83,7 +83,7 @@ const appStore = useAppStore();
 
 .header {
   padding: 13px 15px;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -93,7 +93,7 @@ const appStore = useAppStore();
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  background: var(--color-background-info);
+  background: var(--color-accent-dim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,7 +101,7 @@ const appStore = useAppStore();
 }
 
 .logo-icon {
-  color: var(--color-text-info);
+  color: var(--color-accent);
 }
 
 .title {

@@ -1,8 +1,21 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue';
+import { useAudioStore } from '../../stores/useAudioStore';
 import AppSidebar from './AppSidebar.vue';
 import AppTopBar from './AppTopBar.vue';
 import SettingsPanel from './SettingsPanel.vue';
 import { RouterView } from 'vue-router';
+
+const audioStore = useAudioStore();
+
+onMounted(async () => {
+  await audioStore.listenToStreamEvents();
+  await audioStore.loadDevices();
+});
+
+onUnmounted(() => {
+  audioStore.cleanup();
+});
 </script>
 
 <template>

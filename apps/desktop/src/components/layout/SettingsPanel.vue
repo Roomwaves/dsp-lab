@@ -122,8 +122,8 @@ function close() {
   top: 0;
   height: 100%;
   width: 272px;
-  background: var(--color-background-primary);
-  border-left: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-bg-elevated);
+  border-left: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   z-index: 10;
