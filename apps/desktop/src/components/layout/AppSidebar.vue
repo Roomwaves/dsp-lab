@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { useAppStore, type ToolId } from '../../stores/useAppStore';
-const { t } = useI18n();
-import { storeToRefs } from 'pinia';
+import { useAppStore } from '../../stores/useAppStore';
 import { useI18n } from 'vue-i18n';
 import { IconWaveSine, IconActivity, IconChartLine, IconChartHistogram, IconInfinity, IconAdjustmentsHorizontal, IconAntenna, IconBuilding, IconClock, IconSettings, IconChevronRight } from '@tabler/icons-vue';
+import { RouterLink } from 'vue-router';
 
+const { t } = useI18n();
 const appStore = useAppStore();
-const { activeTool } = storeToRefs(appStore);
-
-function pick(id: ToolId) {
-  appStore.setActiveTool(id);
-}
 </script>
 
 <template>
@@ -28,28 +23,28 @@ function pick(id: ToolId) {
     <nav class="nav">
       <p class="sec-label">{{ t('sidebar.analysis') }}</p>
       
-      <div class="nav-item" :class="{ active: activeTool === 'rta' }" @click="pick('rta')">
+      <RouterLink :to="{ name: 'rta' }" class="nav-item">
         <IconActivity size="17" /><span>{{ t('sidebar.rta') }}</span>
-      </div>
-      <div class="nav-item" :class="{ active: activeTool === 'tf' }" @click="pick('tf')">
+      </RouterLink>
+      <RouterLink :to="{ name: 'transfer-function' }" class="nav-item">
         <IconChartLine size="17" /><span>{{ t('sidebar.transfer_function') }}</span>
-      </div>
-      <div class="nav-item" :class="{ active: activeTool === 'spec' }" @click="pick('spec')">
+      </RouterLink>
+      <RouterLink :to="{ name: 'spectrogram' }" class="nav-item">
         <IconChartHistogram size="17" /><span>{{ t('sidebar.spectrogram') }}</span>
-      </div>
-      <div class="nav-item" :class="{ active: activeTool === 'coh' }" @click="pick('coh')">
+      </RouterLink>
+      <RouterLink :to="{ name: 'coherence' }" class="nav-item">
         <IconInfinity size="17" /><span>{{ t('sidebar.coherence') }}</span>
-      </div>
+      </RouterLink>
 
       <div class="divider"></div>
       
       <p class="sec-label">{{ t('sidebar.tools') }}</p>
-      <div class="nav-item" :class="{ active: activeTool === 'flt' }" @click="pick('flt')">
+      <RouterLink :to="{ name: 'filter-designer' }" class="nav-item">
         <IconAdjustmentsHorizontal size="17" /><span>{{ t('sidebar.filter_designer') }}</span>
-      </div>
-      <div class="nav-item" :class="{ active: activeTool === 'gen' }" @click="pick('gen')">
+      </RouterLink>
+      <RouterLink :to="{ name: 'signal-generator' }" class="nav-item">
         <IconAntenna size="17" /><span>{{ t('sidebar.signal_generator') }}</span>
-      </div>
+      </RouterLink>
 
       <div class="divider"></div>
       
@@ -148,6 +143,7 @@ function pick(id: ToolId) {
   color: var(--color-text-secondary);
   transition: background 0.12s, color 0.12s;
   user-select: none;
+  text-decoration: none;
 }
 
 .nav-item:hover {
@@ -155,7 +151,7 @@ function pick(id: ToolId) {
   color: var(--color-text-primary);
 }
 
-.nav-item.active {
+.nav-item.router-link-active {
   background: var(--color-background-info);
   color: var(--color-text-info);
 }
