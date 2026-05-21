@@ -76,6 +76,9 @@ async fn get_supported_sample_rates(device_id: String) -> Result<Vec<u32>, Strin
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    silence_alsa_logging();
+
     // Stop flag compartido para el watcher de hot-plug
     let hotplug_stop = Arc::new(AtomicBool::new(false));
     let hotplug_stop_clone = Arc::clone(&hotplug_stop);
@@ -123,3 +126,28 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(target_os = "linux")]
+fn silence_alsa_logging() {
+    use std::os::raw::{c_char, c_int};
+
+    unsafe extern "C" fn dummy_error_handler(
+        _file: *const c_char,
+        _line: c_int,
+        _function: *const c_char,
+        _err: c_int,
+        _format: *const c_char,
+    ) {}
+
+    #[link(name = "asound")]
+    extern "C" {
+        fn snd_lib_error_set_handler(
+            handler: Option<unsafe extern "C" fn(*const c_char, c_int, *const c_char, c_int, *const c_char)>,
+        ) -> c_int;
+    }
+
+    unsafe {
+        let _ = snd_lib_error_set_handler(Some(dummy_error_handler));
+    }
+}
+
