@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/app';
+import { useAppStore } from '../../stores/useAppStore';
+const { t } = useI18n();
 import { storeToRefs } from 'pinia';
-import { t } from '../../utils/i18n';
+import { useI18n } from 'vue-i18n';
 import { computed } from 'vue';
 import { IconActivity, IconChartLine, IconChartHistogram, IconInfinity, IconAdjustmentsHorizontal, IconAntenna } from '@tabler/icons-vue';
 // @ts-ignore
@@ -33,7 +34,7 @@ const IconComponent = computed(() => {
     
     <div class="status-container">
       <div class="status-dot"></div>
-      <span class="status-text">{{ t('ready', language) }}</span>
+      <span class="status-text">{{ t('status.ready') }}</span>
     </div>
   </div>
 </template>

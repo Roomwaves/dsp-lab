@@ -1,0 +1,10 @@
+:root, [data-theme="light"] {
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F3F4F6;
+  --color-bg-elevated: #E5E7EB;
+  --color-border: #D1D5DB;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-accent: #00D97E;
+  --color-accent-dim: rgba(0, 217, 126, 0.12);
+}

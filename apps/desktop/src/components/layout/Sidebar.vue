@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { useAppStore, type ToolId } from '../../stores/app';
+import { useAppStore, type ToolId } from '../../stores/useAppStore';
+const { t } = useI18n();
 import { storeToRefs } from 'pinia';
-import { t } from '../../utils/i18n';
+import { useI18n } from 'vue-i18n';
 import { IconWaveSine, IconActivity, IconChartLine, IconChartHistogram, IconInfinity, IconAdjustmentsHorizontal, IconAntenna, IconBuilding, IconClock, IconSettings, IconChevronRight } from '@tabler/icons-vue';
 
 const appStore = useAppStore();
-const { activeTool, language } = storeToRefs(appStore);
+const { activeTool } = storeToRefs(appStore);
 
 function pick(id: ToolId) {
   appStore.setActiveTool(id);
@@ -25,40 +26,40 @@ function pick(id: ToolId) {
     </div>
 
     <nav class="nav">
-      <p class="sec-label">{{ t('lbl-analysis', language) }}</p>
+      <p class="sec-label">{{ t('sidebar.analysis') }}</p>
       
       <div class="nav-item" :class="{ active: activeTool === 'rta' }" @click="pick('rta')">
-        <IconActivity size="17" /><span>{{ t('n-rta', language) }}</span>
+        <IconActivity size="17" /><span>{{ t('sidebar.rta') }}</span>
       </div>
       <div class="nav-item" :class="{ active: activeTool === 'tf' }" @click="pick('tf')">
-        <IconChartLine size="17" /><span>{{ t('n-tf', language) }}</span>
+        <IconChartLine size="17" /><span>{{ t('sidebar.transfer_function') }}</span>
       </div>
       <div class="nav-item" :class="{ active: activeTool === 'spec' }" @click="pick('spec')">
-        <IconChartHistogram size="17" /><span>{{ t('n-spec', language) }}</span>
+        <IconChartHistogram size="17" /><span>{{ t('sidebar.spectrogram') }}</span>
       </div>
       <div class="nav-item" :class="{ active: activeTool === 'coh' }" @click="pick('coh')">
-        <IconInfinity size="17" /><span>{{ t('n-coh', language) }}</span>
+        <IconInfinity size="17" /><span>{{ t('sidebar.coherence') }}</span>
       </div>
 
       <div class="divider"></div>
       
-      <p class="sec-label">{{ t('lbl-tools', language) }}</p>
+      <p class="sec-label">{{ t('sidebar.tools') }}</p>
       <div class="nav-item" :class="{ active: activeTool === 'flt' }" @click="pick('flt')">
-        <IconAdjustmentsHorizontal size="17" /><span>{{ t('n-flt', language) }}</span>
+        <IconAdjustmentsHorizontal size="17" /><span>{{ t('sidebar.filter_designer') }}</span>
       </div>
       <div class="nav-item" :class="{ active: activeTool === 'gen' }" @click="pick('gen')">
-        <IconAntenna size="17" /><span>{{ t('n-gen', language) }}</span>
+        <IconAntenna size="17" /><span>{{ t('sidebar.signal_generator') }}</span>
       </div>
 
       <div class="divider"></div>
       
-      <p class="sec-label">{{ t('lbl-soon', language) }}</p>
+      <p class="sec-label">{{ t('sidebar.soon') }}</p>
       <div class="nav-item disabled">
-        <IconBuilding size="17" /><span>{{ t('n-room', language) }}</span>
+        <IconBuilding size="17" /><span>{{ t('sidebar.room') }}</span>
         <span class="badge">soon</span>
       </div>
       <div class="nav-item disabled">
-        <IconClock size="17" /><span>{{ t('n-delay', language) }}</span>
+        <IconClock size="17" /><span>{{ t('sidebar.delay') }}</span>
         <span class="badge">soon</span>
       </div>
     </nav>
@@ -67,7 +68,7 @@ function pick(id: ToolId) {
       <div class="nav-item settings-btn" @click="appStore.toggleSettings()">
         <div class="settings-content">
           <IconSettings size="17" />
-          <span>{{ t('n-settings', language) }}</span>
+          <span>{{ t('sidebar.settings') }}</span>
         </div>
         <IconChevronRight size="13" class="chevron" />
       </div>

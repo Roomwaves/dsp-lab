@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/app';
+import { useAppStore } from '../../stores/useAppStore';
+const { t } = useI18n();
 import { storeToRefs } from 'pinia';
-import { t } from '../../utils/i18n';
+import { useI18n } from 'vue-i18n';
 import { IconSettings, IconX, IconChevronRight } from '@tabler/icons-vue';
 
 const appStore = useAppStore();
@@ -17,7 +18,7 @@ function close() {
     <div class="header">
       <div class="title-container">
         <IconSettings size="16" />
-        <span class="title">{{ t('n-stitle', language) }}</span>
+        <span class="title">{{ t('settings.title') }}</span>
       </div>
       <button @click="close" class="close-btn" aria-label="Close settings">
         <IconX size="18" />
@@ -25,23 +26,23 @@ function close() {
     </div>
     
     <div class="content">
-      <p class="section-label">{{ t('n-appearance', language) }}</p>
+      <p class="section-label">{{ t('settings.appearance') }}</p>
       
       <div class="s-row">
         <div>
-          <div class="row-title">{{ t('n-theme', language) }}</div>
-          <div class="row-sub">{{ t('n-theme-sub', language) }}</div>
+          <div class="row-title">{{ t('settings.theme') }}</div>
+          <div class="row-sub">{{ t('settings.theme_sub') }}</div>
         </div>
         <div class="btn-group">
-          <button class="opt-btn" :class="{ active: theme === 'light' }" @click="appStore.setTheme('light')">{{ t('theme-light', language) }}</button>
-          <button class="opt-btn" :class="{ active: theme === 'dark' }" @click="appStore.setTheme('dark')">{{ t('theme-dark', language) }}</button>
+          <button class="opt-btn" :class="{ active: theme === 'light' }" @click="appStore.setTheme('light')">{{ t('settings.theme_light') }}</button>
+          <button class="opt-btn" :class="{ active: theme === 'dark' }" @click="appStore.setTheme('dark')">{{ t('settings.theme_dark') }}</button>
         </div>
       </div>
       
       <div class="s-row">
         <div>
-          <div class="row-title">{{ t('n-lang', language) }}</div>
-          <div class="row-sub">{{ t('n-lang-sub', language) }}</div>
+          <div class="row-title">{{ t('settings.language') }}</div>
+          <div class="row-sub">{{ t('settings.language_sub') }}</div>
         </div>
         <div class="btn-group">
           <button class="opt-btn" :class="{ active: language === 'es' }" @click="appStore.setLanguage('es')">ES</button>
@@ -51,19 +52,19 @@ function close() {
       
       <div class="divider"></div>
       
-      <p class="section-label">{{ t('n-audio', language) }}</p>
+      <p class="section-label">{{ t('settings.audio') }}</p>
       
       <div class="s-row">
         <div>
-          <div class="row-title">{{ t('n-input', language) }}</div>
-          <div class="row-sub">{{ t('n-input-sub', language) }}</div>
+          <div class="row-title">{{ t('settings.input_device') }}</div>
+          <div class="row-sub">{{ t('settings.input_device_sub') }}</div>
         </div>
         <IconChevronRight size="15" class="chevron" />
       </div>
       
       <div class="s-row">
         <div>
-          <div class="row-title">{{ t('n-fs', language) }}</div>
+          <div class="row-title">{{ t('settings.sample_rate') }}</div>
           <div class="row-sub">44 100 Hz</div>
         </div>
         <IconChevronRight size="15" class="chevron" />
@@ -71,7 +72,7 @@ function close() {
       
       <div class="s-row">
         <div>
-          <div class="row-title">{{ t('n-buf', language) }}</div>
+          <div class="row-title">{{ t('settings.buffer_size') }}</div>
           <div class="row-sub">1024 samples</div>
         </div>
         <IconChevronRight size="15" class="chevron" />

@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/app';
-import { storeToRefs } from 'pinia';
-import { t } from '../../utils/i18n';
+const { t } = useI18n();
+import { useI18n } from 'vue-i18n';
 import { generateBars } from '../../utils/visualizations';
 import { computed, ref } from 'vue';
-
-const appStore = useAppStore();
-const { language } = storeToRefs(appStore);
 
 const activeFilter = ref(0);
 const filters = ['Moving Average', 'Comb Filter', 'FIR'];
@@ -17,7 +13,7 @@ const bars = computed(() => generateBars(28, true));
 <template>
   <div class="tool-wrapper">
     <div class="header">
-      <div class="title">{{ t('n-flt', language) }}</div>
+      <div class="title">{{ t('sidebar.filter_designer') }}</div>
       <div class="subtitle">Moving average · Comb · FIR</div>
     </div>
     
