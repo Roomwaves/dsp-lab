@@ -3,6 +3,7 @@
 pub mod audio;
 
 use audio::{
+    channel_routing::{get_channel_routing, set_channel_routing, AppAudioState},
     device_manager::{get_default_input_device, get_input_devices, get_output_devices},
     stream_manager::{get_stream_state, start_audio_stream, stop_audio_stream, StreamManager},
 };
@@ -19,6 +20,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         // Estado global del StreamManager — un único stream activo a la vez.
         .manage(Mutex::new(StreamManager::new()))
+        // Estado global de audio (routing de canales, etc.)
+        .manage(Mutex::new(AppAudioState::new()))
         .invoke_handler(tauri::generate_handler![
             greet,
             // #42 — Device manager
@@ -29,6 +32,9 @@ pub fn run() {
             start_audio_stream,
             stop_audio_stream,
             get_stream_state,
+            // #45 — Channel routing
+            set_channel_routing,
+            get_channel_routing,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
