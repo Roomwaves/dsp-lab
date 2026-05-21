@@ -13,8 +13,12 @@
  * Los dispositivos se re-enumeran en cada arranque (pueden cambiar).
  *
  * ## Eventos Tauri escuchados
- * - `audio://error`      → streamState = 'error', streamError = msg
- * - `audio://fft-result` → actualiza fftResult y currentLevel_dBFS
+ * - `audio://error`              → streamState = 'error', streamError = msg
+ * - `audio://fft-result`         → actualiza fftResult y currentLevel_dBFS
+ * - `audio://device-connected`   → añade dispositivo a inputDevices
+ * - `audio://device-disconnected`→ elimina dispositivo; si era el activo, marca error
+ * - `audio://output-connected`   → añade dispositivo a outputDevices
+ * - `audio://output-disconnected`→ elimina dispositivo de outputDevices
  */
 
 import { defineStore } from 'pinia'
@@ -78,6 +82,12 @@ export const useAudioStore = defineStore('audio', () => {
   const selectedSampleRate  = ref<number>(lsGet(LS_SAMPLE_RATE, 44100))
   /** Tamaño de buffer (samples). */
   const selectedBufferSize  = ref<number>(lsGet(LS_BUFFER_SIZE, 512))
+
+  // ── Validación (#48) ──────────────────────────────────────────────────────
+  /** Error de validación de config (sample rate/canales/buffer incompatibles). */
+  const validationError = ref<string | null>(null)
+  /** Sample rates soportados por el dispositivo seleccionado actualmente. */
+  const supportedSampleRates = ref<number[]>([])
   /** Routing de canales activo. */
   const channelRouting = ref<ChannelRouting>(
     lsGet<ChannelRouting>(LS_ROUTING, { assignments: [], total_physical_channels: 0 })
@@ -238,7 +248,44 @@ export const useAudioStore = defineStore('audio', () => {
       signalStore.fftMagnitudes = result.magnitudes_db
     })
 
-    _unlisteners.push(unlistenError, unlistenFFT)
+    // ── Hot-plug (#47) ────────────────────────────────────────────────────
+    const unlistenDevConn = await listen<AudioDeviceInfo>('audio://device-connected', (event) => {
+      const device = event.payload
+      // Añadir si no existe ya (evitar duplicados en caso de re-enumeración)
+      if (!inputDevices.value.some(d => d.id === device.id)) {
+        inputDevices.value = [...inputDevices.value, device]
+      }
+    })
+
+    const unlistenDevDisc = await listen<AudioDeviceInfo>('audio://device-disconnected', (event) => {
+      const device = event.payload
+      inputDevices.value = inputDevices.value.filter(d => d.id !== device.id)
+
+      // Si era el dispositivo activo, marcar error de stream
+      if (selectedInputDevice.value?.id === device.id) {
+        streamState.value = 'error'
+        streamError.value = `El dispositivo de audio "${device.name}" se desconectó.`
+        selectedInputDevice.value = null
+      }
+    })
+
+    const unlistenOutConn = await listen<AudioDeviceInfo>('audio://output-connected', (event) => {
+      const device = event.payload
+      if (!outputDevices.value.some(d => d.id === device.id)) {
+        outputDevices.value = [...outputDevices.value, device]
+      }
+    })
+
+    const unlistenOutDisc = await listen<AudioDeviceInfo>('audio://output-disconnected', (event) => {
+      const device = event.payload
+      outputDevices.value = outputDevices.value.filter(d => d.id !== device.id)
+    })
+
+    _unlisteners.push(
+      unlistenError, unlistenFFT,
+      unlistenDevConn, unlistenDevDisc,
+      unlistenOutConn, unlistenOutDisc,
+    )
   }
 
   /**
@@ -285,6 +332,53 @@ export const useAudioStore = defineStore('audio', () => {
     lsSet(LS_BUFFER_SIZE, selectedBufferSize.value)
   }
 
+  /**
+   * Carga los sample rates soportados por el dispositivo actualmente seleccionado.
+   * Llamar cada vez que cambia `selectedInputDevice`.
+   */
+  async function loadSupportedSampleRates(): Promise<void> {
+    if (!selectedInputDevice.value) {
+      supportedSampleRates.value = []
+      return
+    }
+    try {
+      supportedSampleRates.value = await invoke<number[]>(
+        'get_supported_sample_rates',
+        { deviceId: selectedInputDevice.value.id },
+      )
+    } catch {
+      // Fallback: lista global de rates comunes si el comando falla
+      supportedSampleRates.value = [44100, 48000, 96000]
+    }
+  }
+
+  /**
+   * Valida la configuración activa contra las capacidades del dispositivo.
+   * Actualiza `validationError` con el mensaje de error o null si es válida.
+   */
+  async function validateConfig(): Promise<boolean> {
+    if (!selectedInputDevice.value) {
+      validationError.value = 'No hay dispositivo seleccionado'
+      return false
+    }
+    try {
+      await invoke('validate_audio_config', {
+        deviceId: selectedInputDevice.value.id,
+        config: {
+          device_id:   selectedInputDevice.value.id,
+          sample_rate: selectedSampleRate.value,
+          channels:    _effectiveChannels(),
+          buffer_size: selectedBufferSize.value,
+        },
+      })
+      validationError.value = null
+      return true
+    } catch (err) {
+      validationError.value = (err as Error).message ?? String(err)
+      return false
+    }
+  }
+
   // ── Retorno del store ─────────────────────────────────────────────────────
   return {
     // Dispositivos
@@ -295,6 +389,9 @@ export const useAudioStore = defineStore('audio', () => {
     selectedSampleRate,
     selectedBufferSize,
     channelRouting,
+    // Validación (#48)
+    validationError,
+    supportedSampleRates,
     // Estado del stream
     streamState,
     streamError,
@@ -318,6 +415,8 @@ export const useAudioStore = defineStore('audio', () => {
     stopStream,
     applyConfig,
     applyChannelRouting,
+    loadSupportedSampleRates,
+    validateConfig,
     listenToStreamEvents,
     cleanup,
     // Compat (síncrono → async)
