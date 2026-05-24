@@ -38,7 +38,7 @@ use ringbuf::{
     HeapRb,
 };
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::Emitter;
 
 use super::channel_routing::ChannelRouting;
 
@@ -81,6 +81,8 @@ pub struct FFTResult {
     pub magnitudes_db: Vec<f32>,
     /// Nivel RMS del bloque en dBFS.
     pub level_dbfs: f32,
+    /// Niveles RMS en dBFS para cada canal físico de la interfaz.
+    pub channel_levels_dbfs: Vec<f32>,
     /// Timestamp del bloque de origen (ms).
     pub timestamp_ms: u64,
 }
@@ -163,6 +165,22 @@ impl AudioPipeline {
 // ---------------------------------------------------------------------------
 
 impl AudioBlockReceiver {
+    /// Crea un receptor de bloques de audio a partir de un consumidor de ring buffer.
+    pub fn new(
+        consumer: ringbuf::HeapCons<f32>,
+        block_size: usize,
+        channels: u16,
+        sample_rate: u32,
+    ) -> Self {
+        Self {
+            consumer,
+            block_size,
+            channels,
+            sample_rate,
+            assemble_buf: Vec::with_capacity(block_size),
+        }
+    }
+
     /// Intenta ensamblar un bloque completo de `block_size` samples.
     ///
     /// Devuelve `Some(AudioBlock)` cuando hay suficientes muestras disponibles,
@@ -214,9 +232,9 @@ impl AudioBlockReceiver {
 ///
 /// El thread se detiene cuando `stop_flag` pasa a `true`.
 /// Devuelve un `JoinHandle` para sincronización en el shutdown.
-pub fn spawn_processing_thread(
+pub fn spawn_processing_thread<R: tauri::Runtime + 'static>(
     mut receiver: AudioBlockReceiver,
-    app: AppHandle,
+    app: tauri::AppHandle<R>,
     routing: Arc<std::sync::RwLock<ChannelRouting>>,
     stop_flag: Arc<AtomicBool>,
 ) -> thread::JoinHandle<()> {
@@ -247,7 +265,8 @@ pub fn spawn_processing_thread(
                     };
 
                     // 3. Calcular FFT y nivel RMS
-                    let fft_result = compute_fft_result(&mono, block.sample_rate, block.timestamp_ms);
+                    let mut fft_result = compute_fft_result(&mono, block.sample_rate, block.timestamp_ms);
+                    fft_result.channel_levels_dbfs = calculate_channel_levels(&block.samples, block.channels);
 
                     // 4. Emitir al frontend — el error se ignora si no hay listener
                     let _ = app.emit("audio://fft-result", &fft_result);
@@ -283,6 +302,40 @@ fn downmix_to_mono(interleaved: &[f32], channels: u16) -> Vec<f32> {
 ///
 /// Usa la DFT de Cooley-Tukey implementada inline (sin dependencia extra).
 /// Para producción se reemplazaría por `rustfft`.
+/// Calcula los niveles RMS en dBFS para cada canal físico en el bloque de muestras.
+fn calculate_channel_levels(interleaved: &[f32], channels: u16) -> Vec<f32> {
+    if channels == 0 {
+        return vec![];
+    }
+    let num_channels = channels as usize;
+    let frames = interleaved.len() / num_channels;
+    if frames == 0 {
+        return vec![f32::NEG_INFINITY; num_channels];
+    }
+
+    let mut sums = vec![0.0f32; num_channels];
+    for frame in interleaved.chunks_exact(num_channels) {
+        for (c, &sample) in frame.iter().enumerate() {
+            sums[c] += sample * sample;
+        }
+    }
+
+    sums.into_iter()
+        .map(|sum| {
+            let rms = (sum / frames as f32).sqrt();
+            if rms > 0.0 {
+                20.0 * rms.log10()
+            } else {
+                f32::NEG_INFINITY
+            }
+        })
+        .collect()
+}
+
+/// Calcula la FFT de una señal mono y devuelve magnitudes en dBFS + nivel RMS.
+///
+/// Usa la DFT de Cooley-Tukey implementada inline (sin dependencia extra).
+/// Para producción se reemplazaría por `rustfft`.
 fn compute_fft_result(samples: &[f32], sample_rate: u32, timestamp_ms: u64) -> FFTResult {
     let n = samples.len();
     if n == 0 {
@@ -290,6 +343,7 @@ fn compute_fft_result(samples: &[f32], sample_rate: u32, timestamp_ms: u64) -> F
             frequencies: vec![],
             magnitudes_db: vec![],
             level_dbfs: f32::NEG_INFINITY,
+            channel_levels_dbfs: vec![],
             timestamp_ms,
         };
     }
@@ -331,6 +385,7 @@ fn compute_fft_result(samples: &[f32], sample_rate: u32, timestamp_ms: u64) -> F
         frequencies,
         magnitudes_db,
         level_dbfs,
+        channel_levels_dbfs: vec![],
         timestamp_ms,
     }
 }

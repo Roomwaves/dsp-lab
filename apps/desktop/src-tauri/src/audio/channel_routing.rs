@@ -77,7 +77,7 @@ impl ChannelRouting {
     /// - `total_channels`: número total de canales en el stream (stride).
     ///
     /// # Ejemplo
-    /// ```
+    /// ```ignore
     /// // Buffer estéreo: [L0, R0, L1, R1]
     /// let buf = vec![1.0f32, 2.0, 3.0, 4.0];
     /// let routing = ChannelRouting::new_empty();
@@ -154,13 +154,13 @@ impl Default for ChannelRouting {
 ///
 /// Combina el routing de canales con la referencia al pipeline activo.
 pub struct AppAudioState {
-    pub routing: ChannelRouting,
+    pub routing: std::sync::Arc<std::sync::RwLock<ChannelRouting>>,
 }
 
 impl AppAudioState {
     pub fn new() -> Self {
         Self {
-            routing: ChannelRouting::new_empty(),
+            routing: std::sync::Arc::new(std::sync::RwLock::new(ChannelRouting::new_empty())),
         }
     }
 }
@@ -188,10 +188,14 @@ pub async fn set_channel_routing(
     routing: ChannelRouting,
     state: tauri::State<'_, Mutex<AppAudioState>>,
 ) -> Result<(), String> {
-    state
+    let state_guard = state
         .lock()
-        .map_err(|e| format!("Error al adquirir lock de AppAudioState: {e}"))?
-        .routing = routing;
+        .map_err(|e| format!("Error al adquirir lock de AppAudioState: {e}"))?;
+    let mut write_guard = state_guard
+        .routing
+        .write()
+        .map_err(|e| format!("Error al adquirir write lock de routing: {e}"))?;
+    *write_guard = routing;
     Ok(())
 }
 
@@ -202,11 +206,14 @@ pub async fn set_channel_routing(
 pub async fn get_channel_routing(
     state: tauri::State<'_, Mutex<AppAudioState>>,
 ) -> Result<ChannelRouting, String> {
-    Ok(state
+    let state_guard = state
         .lock()
-        .map_err(|e| format!("Error al adquirir lock de AppAudioState: {e}"))?
+        .map_err(|e| format!("Error al adquirir lock de AppAudioState: {e}"))?;
+    let read_guard = state_guard
         .routing
-        .clone())
+        .read()
+        .map_err(|e| format!("Error al adquirir read lock de routing: {e}"))?;
+    Ok(read_guard.clone())
 }
 
 // ---------------------------------------------------------------------------

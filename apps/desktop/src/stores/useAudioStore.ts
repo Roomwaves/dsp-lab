@@ -119,6 +119,30 @@ export const useAudioStore = defineStore('audio', () => {
   /** Último resultado de FFT recibido del processing thread. */
   const fftResult = shallowRef<FFTResult | null>(null)
 
+  /** Nivel RMS del canal lógico X (Reference) en dBFS. */
+  const levelX_dBFS = computed(() => {
+    if (!fftResult.value || !fftResult.value.channel_levels_dbfs) return -Infinity
+    const assignment = channelRouting.value.assignments.find(
+      a => a.logical_name === 'X (input)' || a.logical_name.startsWith('X')
+    )
+    if (!assignment) return -Infinity
+    const idx = assignment.physical_channel
+    if (idx < 0 || idx >= fftResult.value.channel_levels_dbfs.length) return -Infinity
+    return fftResult.value.channel_levels_dbfs[idx]
+  })
+
+  /** Nivel RMS del canal lógico Y (Measurement) en dBFS. */
+  const levelY_dBFS = computed(() => {
+    if (!fftResult.value || !fftResult.value.channel_levels_dbfs) return -Infinity
+    const assignment = channelRouting.value.assignments.find(
+      a => a.logical_name === 'Y (output)' || a.logical_name.startsWith('Y')
+    )
+    if (!assignment) return -Infinity
+    const idx = assignment.physical_channel
+    if (idx < 0 || idx >= fftResult.value.channel_levels_dbfs.length) return -Infinity
+    return fftResult.value.channel_levels_dbfs[idx]
+  })
+
   // ── Computed ──────────────────────────────────────────────────────────────
   /** Latencia estimada en ms según buffer size y sample rate. */
   const estimatedLatencyMs = computed(() =>
@@ -127,6 +151,62 @@ export const useAudioStore = defineStore('audio', () => {
 
   // Compat con código anterior que usa latencyEstimateMs
   const latencyEstimateMs = estimatedLatencyMs
+
+  /** Buffer sizes soportados por el dispositivo seleccionado actualmente. */
+  const supportedBufferSizes = computed(() => {
+    const dev = selectedInputDevice.value
+    if (!dev) return [128, 256, 512, 1024, 2048]
+    
+    // Buscar configs que soporten el sample rate actual
+    const matchingConfigs = dev.supported_configs.filter(c => 
+      selectedSampleRate.value >= c.min_sample_rate && 
+      selectedSampleRate.value <= c.max_sample_rate
+    )
+    
+    const configsToUse = matchingConfigs.length > 0 ? matchingConfigs : dev.supported_configs
+    
+    let min = 0
+    let max = Infinity
+    let hasRange = false
+    
+    for (const c of configsToUse) {
+      if (c.buffer_size_range) {
+        min = Math.max(min, c.buffer_size_range[0])
+        max = Math.min(max, c.buffer_size_range[1])
+        hasRange = true
+      }
+    }
+    
+    const candidates = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
+    if (hasRange) {
+      const filtered = candidates.filter(sz => sz >= min && sz <= max)
+      if (filtered.length === 0) {
+        const result: number[] = []
+        for (const sz of candidates) {
+          if (sz >= min && sz <= max) result.push(sz)
+        }
+        if (result.length === 0) {
+          if (min > 0) result.push(min)
+          if (max < Infinity && max > min) result.push(max)
+        }
+        return result.length > 0 ? result : [256, 512, 1024]
+      }
+      return filtered
+    }
+    
+    return [128, 256, 512, 1024, 2048]
+  })
+
+  // Watch buffer sizes soportados para ajustar el buffer size activo si queda fuera de rango
+  watch(supportedBufferSizes, (newSizes) => {
+    if (newSizes.length > 0 && !newSizes.includes(selectedBufferSize.value)) {
+      if (newSizes.includes(512)) {
+        selectedBufferSize.value = 512
+      } else {
+        selectedBufferSize.value = newSizes[0]
+      }
+    }
+  }, { immediate: true })
 
   // ── Listeners Tauri (se inicializan una sola vez) ─────────────────────────
   const _unlisteners: UnlistenFn[] = []
@@ -402,6 +482,27 @@ export const useAudioStore = defineStore('audio', () => {
   watch(selectedInputDevice, async (newDev) => {
     if (newDev) {
       await loadSupportedSampleRates()
+      
+      // Auto routing mapping logic
+      const totalChannels = newDev.supported_configs.length > 0
+        ? Math.max(...newDev.supported_configs.map(c => c.channels))
+        : 2
+      
+      const assignments = [
+        { logical_name: 'X (input)', physical_channel: 0 }
+      ]
+      if (totalChannels >= 2) {
+        assignments.push({ logical_name: 'Y (output)', physical_channel: 1 })
+      } else {
+        assignments.push({ logical_name: 'Y (output)', physical_channel: 0 })
+      }
+      
+      const routing: ChannelRouting = {
+        assignments,
+        total_physical_channels: totalChannels
+      }
+      
+      await applyChannelRouting(routing)
       await validateConfig()
     }
   }, { immediate: true })
@@ -420,6 +521,7 @@ export const useAudioStore = defineStore('audio', () => {
     // Validación (#48)
     validationError,
     supportedSampleRates,
+    supportedBufferSizes,
     // Estado del stream
     streamState,
     streamError,
@@ -453,6 +555,8 @@ export const useAudioStore = defineStore('audio', () => {
     bufferSize: selectedBufferSize,
     // Métricas
     currentLevel_dBFS,
+    levelX_dBFS,
+    levelY_dBFS,
     fftResult,
     estimatedLatencyMs,
     latencyEstimateMs,

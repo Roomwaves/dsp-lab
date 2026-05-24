@@ -1,8 +1,17 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
+import { useAudioStore } from '../../stores/useAudioStore';
 import AppSidebar from './AppSidebar.vue';
 import AppTopBar from './AppTopBar.vue';
 import WorkspacePanels from '../workspace/WorkspacePanels.vue';
 import ToolsDrawer from '../workspace/ToolsDrawer.vue';
+
+const audioStore = useAudioStore();
+
+onMounted(() => {
+  audioStore.loadDevices();
+  audioStore.listenToStreamEvents();
+});
 </script>
 
 <template>
