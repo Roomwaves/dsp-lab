@@ -49,6 +49,7 @@ export interface FFTResult {
   frequencies: number[]
   magnitudes_db: number[]
   level_dbfs: number
+  channel_levels_dbfs: number[]
   timestamp_ms: number
 }
 

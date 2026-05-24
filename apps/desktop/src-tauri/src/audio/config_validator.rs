@@ -14,7 +14,7 @@
 //!
 //! ## Uso en `stream_manager.rs`
 //!
-//! ```rust
+//! ```ignore
 //! let cpal_config = validate_stream_config(&device_info, &config)?;
 //! device.build_input_stream(&cpal_config, data_cb, err_cb, None)?;
 //! ```

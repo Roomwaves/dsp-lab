@@ -22,3 +22,6 @@ dsp-rs = { path = "../../../core/dsp_rs" }
 # Audio I/O — Issue #42 y #43
 cpal = "0.15"
 ringbuf = "0.4"
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }

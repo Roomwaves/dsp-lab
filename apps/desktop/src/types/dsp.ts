@@ -1,13 +1,12 @@
 export interface FFTOutput {
   frequencies: number[]
-  magnitude: number[]
-  phase: number[]
+  magnitudes: number[]
 }
 
 export interface FrequencyResponseOutput {
   frequencies: number[]
-  magnitude: number[]
-  phase: number[]
+  magnitude_db: number[]
+  phase_rad: number[]
 }
 
 export interface FilterOutput {

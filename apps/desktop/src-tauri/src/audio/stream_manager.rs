@@ -33,7 +33,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     Stream,
 };
-use ringbuf::{traits::{Consumer, Producer, Split}, HeapRb};
+use ringbuf::{traits::{Producer, Split}, HeapRb};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
@@ -117,10 +117,10 @@ pub struct StreamManager {
     state: StreamState,
     /// El stream activo. Mantenerlo vivo previene que CPAL lo cierre.
     _stream: Option<Stream>,
-    /// Consumidor del ring buffer para el processing thread.
-    ring_consumer: Option<ringbuf::HeapCons<f32>>,
     /// Última config con la que se abrió el stream (para `restart_stream`).
     last_config: Option<AudioStreamConfig>,
+    processing_thread: Option<std::thread::JoinHandle<()>>,
+    processing_stop: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
 }
 
 // SAFETY: Stream contiene raw pointers internos de CPAL, pero el acceso
@@ -133,8 +133,9 @@ impl StreamManager {
         Self {
             state: StreamState::Stopped,
             _stream: None,
-            ring_consumer: None,
             last_config: None,
+            processing_thread: None,
+            processing_stop: None,
         }
     }
 
@@ -146,14 +147,12 @@ impl StreamManager {
     /// Abre un nuevo stream con la `config` dada.
     ///
     /// Si había un stream anterior, se cierra primero (invariante de unicidad).
-    /// El callback `on_data` recibe cada bloque de audio; `on_error` recibe
-    /// errores del driver.
-    ///
-    /// **El `on_data` se ejecuta en el RT thread — debe ser lock-free.**
-    pub fn start_stream(
+    /// El callback `on_error` recibe errores del driver.
+    pub fn start_stream<R: tauri::Runtime + 'static>(
         &mut self,
         config: AudioStreamConfig,
-        on_data: impl Fn(AudioBlock) + Send + 'static,
+        routing: std::sync::Arc<std::sync::RwLock<super::channel_routing::ChannelRouting>>,
+        app: tauri::AppHandle<R>,
         on_error: impl Fn(AudioError) + Send + 'static,
     ) -> Result<(), AudioError> {
         // Cerrar stream anterior si existe.
@@ -193,6 +192,7 @@ impl StreamManager {
 
         let channels = config.channels;
         let sample_rate = config.sample_rate;
+        let buffer_size = config.buffer_size;
 
         // --- Construir stream CPAL ---
         // El closure del RT thread solo escribe en el producer — lock-free.
@@ -202,14 +202,6 @@ impl StreamManager {
                 move |data: &[f32], _info: &cpal::InputCallbackInfo| {
                     // Intentar escribir en el ring buffer; si está lleno, descartar.
                     let _ = producer.push_slice(data);
-
-                    // Construir AudioBlock y notificar al callback del usuario.
-                    let block = AudioBlock {
-                        samples: data.to_vec(),
-                        channels,
-                        sample_rate,
-                    };
-                    on_data(block);
                 },
                 move |err| {
                     on_error(AudioError::DeviceIntrospectionFailed(err.to_string()));
@@ -224,8 +216,25 @@ impl StreamManager {
             AudioError::DeviceIntrospectionFailed(format!("Error al iniciar stream: {e}"))
         })?;
 
+        // --- Iniciar processing thread ---
+        let receiver = super::pipeline::AudioBlockReceiver::new(
+            consumer,
+            buffer_size as usize,
+            channels,
+            sample_rate,
+        );
+
+        let stop_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let handle = super::pipeline::spawn_processing_thread(
+            receiver,
+            app,
+            routing,
+            std::sync::Arc::clone(&stop_flag),
+        );
+
         self._stream = Some(stream);
-        self.ring_consumer = Some(consumer);
+        self.processing_thread = Some(handle);
+        self.processing_stop = Some(stop_flag);
         self.last_config = Some(config.clone());
         self.state = StreamState::Running(config);
 
@@ -236,9 +245,16 @@ impl StreamManager {
     ///
     /// Es un no-op si no hay stream activo.
     pub fn stop_stream(&mut self) -> Result<(), AudioError> {
+        // Detener el thread de procesamiento si existe
+        if let Some(stop_flag) = self.processing_stop.take() {
+            stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        if let Some(handle) = self.processing_thread.take() {
+            let _ = handle.join();
+        }
+
         // Soltar el stream hace que CPAL lo cierre gracefully.
         self._stream = None;
-        self.ring_consumer = None;
         self.state = StreamState::Stopped;
         Ok(())
     }
@@ -247,34 +263,30 @@ impl StreamManager {
     ///
     /// Útil para recovery manual tras un error. Falla si no se ha abierto
     /// ningún stream previamente.
-    pub fn restart_stream(&mut self) -> Result<(), AudioError> {
+    pub fn restart_stream<R: tauri::Runtime + 'static>(
+        &mut self,
+        routing: std::sync::Arc<std::sync::RwLock<super::channel_routing::ChannelRouting>>,
+        app: tauri::AppHandle<R>,
+    ) -> Result<(), AudioError> {
         let config = self
             .last_config
             .clone()
             .ok_or_else(|| AudioError::DeviceNotFound("No hay configuración previa para reiniciar".to_string()))?;
 
-        // Usamos callbacks vacíos en el restart; la aplicación debe
-        // llamar a start_stream directamente si necesita callbacks nuevos.
-        self.start_stream(config, |_| {}, |_| {})
-    }
-
-    /// Lee muestras del ring buffer hacia `buf`.
-    ///
-    /// Devuelve el número de muestras efectivamente leídas.
-    /// Retorna 0 si no hay stream activo o el buffer está vacío.
-    pub fn read_samples(&mut self, buf: &mut [f32]) -> usize {
-        match &mut self.ring_consumer {
-            Some(consumer) => consumer.pop_slice(buf),
-            None => 0,
-        }
+        self.start_stream(config, routing, app, |_| {})
     }
 
     /// Transiciona el estado a `Error` y registra el mensaje.
     ///
     /// Llamar este método **no** cierra el stream — se asume que ya falló.
     pub fn set_error(&mut self, msg: String) {
+        if let Some(stop_flag) = self.processing_stop.take() {
+            stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        if let Some(handle) = self.processing_thread.take() {
+            let _ = handle.join();
+        }
         self._stream = None;
-        self.ring_consumer = None;
         self.state = StreamState::Error(msg);
     }
 }
@@ -302,33 +314,25 @@ impl Default for StreamManager {
 pub async fn start_audio_stream(
     config: AudioStreamConfig,
     state: tauri::State<'_, Mutex<StreamManager>>,
+    routing_state: tauri::State<'_, Mutex<super::channel_routing::AppAudioState>>,
     app: AppHandle,
 ) -> Result<(), String> {
-    let app_clone = app.clone();
-
-    let _on_error = {
-        let app = app_clone.clone();
-        move |err: AudioError| {
-            let msg = err.to_string();
-            // Emitir evento al frontend para notificar el error.
-            let _ = app.emit("audio://error", msg.clone());
-            eprintln!("[stream_manager] Error de stream: {msg}");
-        }
-    };
-
     let mut mgr = state
         .lock()
         .map_err(|e| format!("Error al adquirir lock del StreamManager: {e}"))?;
 
-    // Registrar el callback de error en el manager también.
+    let routing = {
+        let app_audio_state = routing_state
+            .lock()
+            .map_err(|e| format!("Error al adquirir lock de AppAudioState: {e}"))?;
+        app_audio_state.routing.clone()
+    };
+
     let app_for_error = app.clone();
     mgr.start_stream(
         config,
-        |_block| {
-            // El procesamiento de audio real ocurre en el processing thread
-            // que consume el ring buffer. Este callback es el punto de entrada
-            // del RT thread — mantenerlo mínimo.
-        },
+        routing,
+        app,
         move |err| {
             let _ = app_for_error.emit("audio://error", err.to_string());
         },
@@ -412,20 +416,12 @@ mod tests {
     }
 
     #[test]
-    fn read_samples_returns_zero_when_stopped() {
-        let mut mgr = StreamManager::new();
-        let mut buf = [0f32; 512];
-        assert_eq!(
-            mgr.read_samples(&mut buf),
-            0,
-            "Sin stream activo debe devolver 0 samples"
-        );
-    }
-
-    #[test]
     fn restart_without_previous_config_fails_gracefully() {
         let mut mgr = StreamManager::new();
-        let result = mgr.restart_stream();
+        let routing = std::sync::Arc::new(std::sync::RwLock::new(super::super::channel_routing::ChannelRouting::new_empty()));
+        let app = tauri::test::mock_app();
+        let handle = app.handle().clone();
+        let result = mgr.restart_stream(routing, handle);
         assert!(result.is_err(), "Restart sin config previa debe fallar");
     }
 }

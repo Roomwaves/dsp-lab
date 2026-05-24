@@ -1,14 +1,23 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue';
 
+export interface CoherenceTrace {
+  frequencies: number[]
+  coherence: number[]
+  color: string
+  label: string
+}
+
 interface Props {
   frequencies: number[]
   coherence: number[]   // valores en [0, 1]
   height?: number
+  traces?: CoherenceTrace[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   height: 200,
+  traces: () => []
 });
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
@@ -57,8 +66,8 @@ function draw() {
 
   if (!props.frequencies || props.frequencies.length === 0) return;
 
-  const fMin = Math.max(props.frequencies[0], 1);
-  const fMax = props.frequencies[props.frequencies.length - 1];
+  const fMin = Math.max(props.frequencies[0] || 1, 1);
+  const fMax = props.frequencies[props.frequencies.length - 1] || 20000;
 
   const toX = (f: number) => {
     const logMin = Math.log10(fMin);
@@ -66,14 +75,29 @@ function draw() {
     return ((Math.log10(Math.max(f, fMin)) - logMin) / (logMax - logMin)) * width;
   };
 
-  // Dibujar la curva de coherencia segmentada por color:
-  // verde (#22C55E) cuando γ² > 0.9, naranja (#F97316) cuando γ² <= 0.9
+  // 1. Draw traces (snapshots)
+  for (const trace of props.traces) {
+    if (trace.frequencies && trace.frequencies.length > 0 && trace.coherence) {
+      ctx.beginPath();
+      ctx.strokeStyle = trace.color;
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < trace.frequencies.length; i++) {
+        const x = toX(trace.frequencies[i]);
+        const y = toY(trace.coherence[i]);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  // 2. Dibujar la curva de coherencia segmentada por color (main trace)
   let i = 0;
   while (i < props.frequencies.length) {
     const aboveThreshold = props.coherence[i] > HIGH_COHERENCE_THRESHOLD;
     ctx.beginPath();
     ctx.strokeStyle = aboveThreshold ? '#22C55E' : '#F97316';
-    ctx.lineWidth = 1.8;
+    ctx.lineWidth = 2.0;
 
     const startX = toX(props.frequencies[i]);
     const startY = toY(props.coherence[i]);
@@ -106,7 +130,10 @@ function resize() {
     canvasRef.value.style.width = `${rect.width}px`;
     canvasRef.value.style.height = `${props.height}px`;
     const ctx = canvasRef.value.getContext('2d');
-    if (ctx) ctx.scale(dpr, dpr);
+    if (ctx) {
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
     draw();
   }
 }
@@ -120,7 +147,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', resize);
 });
 
-watch([() => props.frequencies, () => props.coherence], () => {
+watch([() => props.frequencies, () => props.coherence, () => props.traces, () => props.height], () => {
   requestAnimationFrame(draw);
 });
 </script>

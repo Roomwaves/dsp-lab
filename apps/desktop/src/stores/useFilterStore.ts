@@ -53,8 +53,8 @@ export const useFilterStore = defineStore('filter', () => {
         })
       }
       frequencies.value = result.frequencies
-      magnitudeDb.value = result.magnitude
-      phaseRad.value = result.phase
+      magnitudeDb.value = result.magnitude_db
+      phaseRad.value = result.phase_rad
     } catch (e) {
       error.value = (e as Error).message
     } finally {

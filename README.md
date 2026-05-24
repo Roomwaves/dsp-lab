@@ -1,38 +1,125 @@
-# DSP Analyzer
+# DSP Analyzer — Repositorio Monorepo
 
-A monorepo for DSP analysis tools.
+Este repositorio contiene el proyecto integrado para el analizador de procesamiento digital de señales (DSP). Está estructurado como un monorepo que incluye:
+* **`core/dsp/`**: El motor matemático en Python (módulo que se entrega para el Trabajo Práctico de la universidad).
+* **`apps/api/`**: El backend en FastAPI que expone las funciones matemáticas mediante endpoints HTTP.
+* **`apps/desktop/`**: La interfaz gráfica interactiva de escritorio construida con Tauri y Vue 3.
 
-![CI Python](https://github.com/user/repo/actions/workflows/ci-python.yml/badge.svg)
-![CI Frontend](https://github.com/user/repo/actions/workflows/ci-frontend.yml/badge.svg)
-![CI Rust](https://github.com/user/repo/actions/workflows/ci-rust.yml/badge.svg)
+---
 
-## Getting started
+## 🛠️ Ruta 1: Desarrollo del Motor DSP (Solo Python)
+*Recomendado para los integrantes del equipo que trabajarán exclusivamente en las funciones matemáticas de `core/dsp/` y en los Jupyter Notebooks.*
 
-Prerequisites: Node 20, Rust (rustup), uv, Docker
+Esta ruta **no** requiere instalar Node.js, Rust, Docker ni compiladores de C/C++. Solo requiere una instalación estándar de Python.
 
-### Setup
+### Requisitos previos
+* **Python 3.11 o superior** instalado.
+  * *Nota para Windows:* Al instalar Python desde el instalador oficial, asegúrese de marcar la casilla **"Add python.exe to PATH"** en la primera pantalla.
 
-```bash
-git clone ...
-uv sync               # installs Python deps and creates .venv automatically
-cd apps/desktop && npm install
-```
+### Configuración del Entorno de Trabajo
 
-### Development
+1. **Clonar el repositorio:**
+   ```bash
+   git clone <URL_DEL_REPOSITORIO>
+   cd TP-DSP
+   ```
 
-```bash
-npm run docker:up     # starts FastAPI on localhost:8000
-npm run dev           # starts Tauri + Vue (separate terminal)
-```
+2. **Crear un entorno virtual de Python:**
+   ```bash
+   python -m venv .venv
+   ```
 
-### Run Python tests only (for teammates who only work on core/dsp):
-```bash
-uv run pytest
-uv run pytest core/dsp/tests/test_filters.py        # single file
-uv run pytest -k "moving_average"                   # by test name
-```
+3. **Activar el entorno virtual:**
+   * **En Windows (Símbolo del sistema - CMD):**
+     ```cmd
+     .venv\Scripts\activate.bat
+     ```
+   * **En Windows (PowerShell):**
+     ```powershell
+     # Si el sistema bloquea la ejecución de scripts, ejecute primero:
+     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+     # Luego active el entorno:
+     .venv\Scripts\Activate.ps1
+     ```
+   * **En Git Bash, Linux o macOS:**
+     ```bash
+     source .venv/bin/activate
+     ```
 
-## License
+4. **Instalar las dependencias del proyecto:**
+   ```bash
+   pip install --upgrade pip
+   pip install -e .
+   pip install pytest
+   ```
 
-This project is licensed under the PolyForm Noncommercial 1.0.0 license.
-Commercial use is not permitted without permission.
+### Ejecutar las Pruebas Unitarias (Tests)
+Una vez activado el entorno virtual, puede validar la correcta implementación matemática de las funciones mediante las pruebas unitarias automatizadas:
+
+* **Ejecutar todos los tests:**
+  ```bash
+  pytest
+  ```
+* **Ejecutar las pruebas de un archivo específico (ej. filtros):**
+  ```bash
+  pytest core/dsp/tests/test_filters.py
+  ```
+* **Ejecutar una prueba específica por su nombre:**
+  ```bash
+  pytest -k "test_dc_preservation"
+  ```
+
+---
+
+## 🚀 Ruta 2: Desarrollo del Sistema Completo (Desktop + API)
+*Recomendado para ejecutar la aplicación de escritorio de forma local y conectar la interfaz de usuario con el motor matemático.*
+
+### Requisitos previos
+* **Node.js (v20 o superior)**
+* **Rust (rustup)** y herramientas de compilación de C++ (Build Tools para Visual Studio en Windows).
+* **uv** (Administrador de paquetes de Python rápido, opcional).
+* **Docker** (opcional, para levantar el servidor de FastAPI en un contenedor).
+
+### Configuración Inicial
+
+1. **Instalar dependencias de Python y Node.js:**
+   ```bash
+   # Si usa uv (instalación rápida de dependencias de Python):
+   uv sync
+
+   # Instalar dependencias del frontend:
+   cd apps/desktop
+   npm install
+   cd ../..
+   ```
+
+2. **Ejecutar el backend (FastAPI):**
+   * **Opción A (Sin Docker):**
+     ```bash
+     npm run api:dev
+     ```
+   * **Opción B (Con Docker):**
+     ```bash
+     npm run docker:up
+     ```
+
+3. **Ejecutar la aplicación de escritorio (Tauri + Vue):**
+   En una nueva pestaña de la terminal, ejecute:
+   ```bash
+   npm run dev
+   ```
+
+---
+
+## 📂 Estructura del Repositorio
+
+* **`core/dsp/`**: Código fuente de procesamiento de señal en Python.
+  * **`core/dsp/tests/`**: Archivos de prueba unitaria (`test_*.py`).
+* **`faculty/`**: Notebooks de Jupyter e informes académicos para entrega.
+* **`apps/api/`**: Servidor FastAPI (puente de red entre la app de escritorio y las funciones en Python).
+* **`apps/desktop/`**: Interfaz de usuario multiplataforma (HTML/CSS/TS/Vue).
+
+---
+
+## 📄 Licencia
+Este proyecto se distribuye bajo la licencia PolyForm Noncommercial 1.0.0. No se permite el uso comercial sin autorización previa.

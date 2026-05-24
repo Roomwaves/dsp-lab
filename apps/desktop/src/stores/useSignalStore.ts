@@ -37,7 +37,7 @@ export const useSignalStore = defineStore('signal', () => {
       const block = samples.value.slice(-fftSize)
       const result = await api.fft(block, fs.value)
       frequencies.value = result.frequencies
-      fftMagnitudes.value = result.magnitude
+      fftMagnitudes.value = result.magnitudes
     } catch (e) {
       error.value = (e as Error).message
     } finally {

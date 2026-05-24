@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
 import { ref, computed } from 'vue';
 import { IconPlus, IconTrash, IconDownload, IconPlayerPlay } from '@tabler/icons-vue';
-import { api } from '../../services/api';
-import WaveformPlot from '../../components/plots/WaveformPlot.vue';
-import SpectrumPlot from '../../components/plots/SpectrumPlot.vue';
-
-const { t } = useI18n();
+import { api } from '../../../services/api';
+import WaveformPlot from '../../plots/WaveformPlot.vue';
+import SpectrumPlot from '../../plots/SpectrumPlot.vue';
 
 // Tone entries
 interface ToneEntry {
@@ -81,13 +78,7 @@ async function exportWav() {
 </script>
 
 <template>
-  <div class="sg-view">
-    <!-- TopBar -->
-    <div class="sg-topbar">
-      <span class="sg-title">{{ t('sidebar.signal_generator') }}</span>
-      <span class="sg-subtitle">Pure tones + white noise</span>
-    </div>
-
+  <div class="sg-panel">
     <!-- Inputs section -->
     <div class="inputs-section">
       <!-- Tones table -->
@@ -173,27 +164,28 @@ async function exportWav() {
           />
         </div>
 
-        <!-- Generate button -->
-        <button
-          id="sg-generate-btn"
-          class="btn btn-primary"
-          :disabled="isLoading || tones.length === 0"
-          @click="generate"
-        >
-          <IconPlayerPlay size="13" />
-          {{ isLoading ? 'Generando…' : 'Generar' }}
-        </button>
+        <!-- Action buttons -->
+        <div class="actions-row">
+          <button
+            id="sg-generate-btn"
+            class="btn btn-primary"
+            :disabled="isLoading || tones.length === 0"
+            @click="generate"
+          >
+            <IconPlayerPlay size="13" />
+            {{ isLoading ? 'Generando…' : 'Generar' }}
+          </button>
 
-        <!-- Export button -->
-        <button
-          id="sg-export-btn"
-          class="btn btn-secondary"
-          :disabled="!hasSamples"
-          @click="exportWav"
-        >
-          <IconDownload size="13" />
-          Export .wav
-        </button>
+          <button
+            id="sg-export-btn"
+            class="btn btn-secondary"
+            :disabled="!hasSamples"
+            @click="exportWav"
+          >
+            <IconDownload size="13" />
+            Export
+          </button>
+        </div>
       </div>
     </div>
 
@@ -201,7 +193,7 @@ async function exportWav() {
     <div v-if="error" class="error-banner">{{ error }}</div>
 
     <!-- Plots -->
-    <div class="plots-area">
+    <div class="plots-area-drawer">
       <div class="plot-wrapper">
         <div class="plot-title">Waveform</div>
         <WaveformPlot
@@ -209,8 +201,7 @@ async function exportWav() {
           id="sg-waveform-plot"
           :samples="samples"
           :fs="fs"
-          :height="0"
-          class="plot-fill"
+          :height="130"
         />
         <div v-else class="empty-plot">—</div>
       </div>
@@ -224,8 +215,7 @@ async function exportWav() {
           :magnitudes="fftMagnitudes"
           :db-scale="true"
           :log-frequency="true"
-          :height="0"
-          class="plot-fill"
+          :height="130"
         />
         <div v-else class="empty-plot">—</div>
       </div>
@@ -234,40 +224,17 @@ async function exportWav() {
 </template>
 
 <style scoped>
-.sg-view {
+.sg-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
   width: 100%;
-  overflow: hidden;
-}
-
-/* TopBar */
-.sg-topbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 20px;
-  border-bottom: 0.5px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.sg-title {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.sg-subtitle {
-  font-size: 11px;
-  color: var(--color-text-secondary);
 }
 
 /* Inputs section */
 .inputs-section {
   display: flex;
-  gap: 16px;
-  padding: 14px 20px;
-  flex-shrink: 0;
+  gap: 20px;
+  padding-bottom: 16px;
   border-bottom: 0.5px solid var(--color-border);
 }
 
@@ -286,18 +253,20 @@ async function exportWav() {
 }
 
 .panel-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
   border: 0.5px solid var(--color-border);
   background: var(--color-bg-elevated);
   color: var(--color-text-secondary);
@@ -306,7 +275,7 @@ async function exportWav() {
 }
 
 .icon-btn:hover:not(:disabled) {
-  background: var(--color-accent-dim, rgba(0, 217, 126, 0.15));
+  background: var(--color-accent-dim);
   color: var(--color-accent);
 }
 
@@ -331,7 +300,7 @@ async function exportWav() {
   grid-template-columns: 1fr 1fr 28px;
   gap: 8px;
   font-size: 10px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   padding: 0 2px;
 }
 
@@ -344,12 +313,12 @@ async function exportWav() {
 
 .num-input {
   width: 100%;
-  padding: 5px 8px;
+  padding: 4px 6px;
   background: var(--color-bg-elevated);
   border: 0.5px solid var(--color-border);
   border-radius: var(--border-radius-md);
   color: var(--color-text-primary);
-  font-size: 12px;
+  font-size: 11px;
   font-family: var(--font-mono);
 }
 
@@ -357,8 +326,8 @@ async function exportWav() {
 .settings-col {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-width: 160px;
+  gap: 8px;
+  min-width: 220px;
   flex-shrink: 0;
 }
 
@@ -366,23 +335,22 @@ async function exportWav() {
   display: flex;
   align-items: center;
   gap: 10px;
+  justify-content: space-between;
 }
 
 .setting-label {
   font-size: 11px;
   color: var(--color-text-secondary);
-  min-width: 62px;
-  flex-shrink: 0;
 }
 
 .select-ctrl {
-  flex: 1;
   background: var(--color-bg-elevated);
   border: 0.5px solid var(--color-border);
   border-radius: var(--border-radius-md);
   color: var(--color-text-primary);
   font-size: 11px;
-  padding: 4px 8px;
+  padding: 3px 6px;
+  cursor: pointer;
 }
 
 .checkbox {
@@ -391,19 +359,26 @@ async function exportWav() {
 }
 
 .slider {
-  flex: 1;
+  width: 100px;
   accent-color: var(--color-accent);
   cursor: pointer;
 }
 
+.actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .btn {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 7px 14px;
+  gap: 4px;
+  padding: 5px 10px;
   border-radius: var(--border-radius-md);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   border: none;
   cursor: pointer;
@@ -428,31 +403,27 @@ async function exportWav() {
 
 /* Error */
 .error-banner {
-  margin: 0 20px 8px;
-  padding: 8px 12px;
+  margin-top: 8px;
+  padding: 6px 10px;
   background: rgba(239, 68, 68, 0.1);
   border: 0.5px solid rgba(239, 68, 68, 0.4);
   border-radius: var(--border-radius-md);
-  font-size: 12px;
+  font-size: 11px;
   color: #EF4444;
-  flex-shrink: 0;
 }
 
 /* Plots */
-.plots-area {
-  flex: 1;
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: 8px;
-  padding: 12px 16px;
-  overflow: hidden;
+.plots-area-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .plot-wrapper {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  overflow: hidden;
 }
 
 .plot-title {
@@ -461,26 +432,15 @@ async function exportWav() {
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  flex-shrink: 0;
-}
-
-.plot-fill {
-  flex: 1;
-  height: 100% !important;
-}
-
-.plot-wrapper :deep(.spectrum-container),
-.plot-wrapper :deep(.waveform-container) {
-  height: 100% !important;
 }
 
 .empty-plot {
-  flex: 1;
+  height: 130px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+  font-size: 11px;
+  color: var(--color-text-secondary);
   background: var(--color-bg-secondary);
   border-radius: var(--border-radius-md);
   border: 0.5px solid var(--color-border);
