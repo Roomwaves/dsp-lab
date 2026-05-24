@@ -1,6 +1,11 @@
 [package]
-name = "dsp_rs"
+name = "dsp-rs"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+rustfft  = "6"
+thiserror = "1"
+
+[dev-dependencies]
+approx = "0.5"     # para assert_relative_eq! en tests

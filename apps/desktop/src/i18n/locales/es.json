@@ -1,0 +1,53 @@
+{
+  "sidebar": {
+    "rta": "Analizador en Tiempo Real",
+    "transfer_function": "Función de Transferencia",
+    "spectrogram": "Espectrograma",
+    "coherence": "Coherencia",
+    "filter_designer": "Diseñador de Filtros",
+    "signal_generator": "Generador de Señales",
+    "settings": "Ajustes",
+    "analysis": "Análisis",
+    "tools": "Herramientas",
+    "soon": "Próximamente",
+    "room": "Acústica de Recintos",
+    "delay": "Buscador de Retardo"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "appearance": "Apariencia",
+    "theme": "Tema",
+    "theme_sub": "Esquema de colores",
+    "language": "Idioma",
+    "language_sub": "Idioma de la interfaz",
+    "audio": "Audio",
+    "input_device": "Dispositivo de entrada",
+    "input_device_sub": "Micrófono por defecto",
+    "sample_rate": "Frecuencia de muestreo",
+    "buffer_size": "Tamaño de buffer",
+    "output_device": "Dispositivo de salida",
+    "output_device_sub": "Altavoz por defecto",
+    "latency_estimate": "Latencia estimada",
+    "theme_light": "Claro",
+    "theme_dark": "Oscuro",
+    "theme_system": "Sistema"
+  },
+  "status": {
+    "ready": "Listo",
+    "streaming": "Transmitiendo",
+    "computing": "Calculando…"
+  },
+  "controls": {
+    "start": "Iniciar",
+    "stop": "Detener",
+    "window": "Ventana",
+    "overlap": "Solapamiento",
+    "frequency": "Frecuencia",
+    "amplitude": "Amplitud",
+    "high_coh": "Alta coherencia < 1 kHz",
+    "input": "Entrada",
+    "output": "Salida",
+    "load": "Cargar .wav",
+    "compute": "Calcular H(ω)"
+  }
+}

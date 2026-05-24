@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def compute_fft(signal: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray]:
     """
     Calcula la Transformada de Fourier Discreta de una señal.

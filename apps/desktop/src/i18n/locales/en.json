@@ -1,0 +1,53 @@
+{
+  "sidebar": {
+    "rta": "Real-Time Analyzer",
+    "transfer_function": "Transfer Function",
+    "spectrogram": "Spectrogram",
+    "coherence": "Coherence",
+    "filter_designer": "Filter Designer",
+    "signal_generator": "Signal Generator",
+    "settings": "Settings",
+    "analysis": "Analysis",
+    "tools": "Tools",
+    "soon": "Coming soon",
+    "room": "Room Acoustics",
+    "delay": "Delay Finder"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "theme_sub": "Color scheme",
+    "language": "Language",
+    "language_sub": "Interface language",
+    "audio": "Audio",
+    "input_device": "Input device",
+    "input_device_sub": "Default microphone",
+    "sample_rate": "Sample rate",
+    "buffer_size": "Buffer size",
+    "output_device": "Output device",
+    "output_device_sub": "Default speaker",
+    "latency_estimate": "Latency estimate",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "System"
+  },
+  "status": {
+    "ready": "Ready",
+    "streaming": "Streaming",
+    "computing": "Computing…"
+  },
+  "controls": {
+    "start": "Start",
+    "stop": "Stop",
+    "window": "Window",
+    "overlap": "Overlap",
+    "frequency": "Frequency",
+    "amplitude": "Amplitude",
+    "high_coh": "High coherence < 1 kHz",
+    "input": "Input",
+    "output": "Output",
+    "load": "Load .wav",
+    "compute": "Compute H(ω)"
+  }
+}

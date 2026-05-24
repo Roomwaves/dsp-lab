@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def compute_psd(signal: np.ndarray, fs: float, n_segments: int = 8) -> tuple[np.ndarray, np.ndarray]:
     """
     Calcula la Densidad Espectral de Potencia (PSD) de una señal.

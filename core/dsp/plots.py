@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def plot_signal(signal: np.ndarray, fs: float, title: str = "Signal", ax=None) -> plt.Figure:
     """
     Grafica una señal en el tiempo.

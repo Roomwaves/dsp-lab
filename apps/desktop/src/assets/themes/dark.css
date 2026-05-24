@@ -1,0 +1,10 @@
+[data-theme="dark"] {
+  --color-bg-primary: #0A0B0D;
+  --color-bg-secondary: #111318;
+  --color-bg-elevated: #181C24;
+  --color-border: #1E2330;
+  --color-text-primary: #E8EAED;
+  --color-text-secondary: #6B7280;
+  --color-accent: #00D97E;
+  --color-accent-dim: rgba(0, 217, 126, 0.12);
+}

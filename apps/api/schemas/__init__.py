@@ -1,1 +1,1 @@
-# apps/api/schemas/__init__.py
+# Schemas init

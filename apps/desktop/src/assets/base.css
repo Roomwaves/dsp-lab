@@ -1,59 +1,15 @@
-/* apps/desktop/src/assets/base.css */
-
-:root {
-  /* Color palette - Light Theme Default */
-  --color-background-primary: #ffffff;
-  --color-background-secondary: #f8f9fa;
-  --color-background-tertiary: #e9ecef;
-  --color-background-info: #e7f5ff;
-  --color-background-success: #2b8a3e;
-
-  --color-border-primary: #dee2e6;
-  --color-border-secondary: #ced4da;
-  --color-border-tertiary: #e9ecef;
-  --color-border-info: #339af0;
-  --color-border-success: #2b8a3e;
-
-  --color-text-primary: #212529;
-  --color-text-secondary: #495057;
-  --color-text-tertiary: #868e96;
-  --color-text-info: #1c7ed6;
-  --color-text-success: #2b8a3e;
-
-  --font-sans: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
-  --border-radius-md: 6px;
-  --border-radius-lg: 10px;
-}
-
-[data-theme="dark"] {
-  --color-background-primary: #121212;
-  --color-background-secondary: #1e1e1e;
-  --color-background-tertiary: #2c2c2c;
-  --color-background-info: #183153;
-  --color-background-success: #1b5e20;
-
-  --color-border-primary: #333333;
-  --color-border-secondary: #444444;
-  --color-border-tertiary: #2c2c2c;
-  --color-border-info: #339af0;
-  --color-border-success: #2e7d32;
-
-  --color-text-primary: #e0e0e0;
-  --color-text-secondary: #a0a0a0;
-  --color-text-tertiary: #707070;
-  --color-text-info: #74c0fc;
-  --color-text-success: #4caf50;
-}
+@import './themes/base.css';
+@import './themes/light.css';
+@import './themes/dark.css';
 
 body {
   margin: 0;
-  font-family: var(--font-sans);
-  background-color: var(--color-background-primary);
+  font-family: var(--font-family);
+  background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 * {
@@ -80,13 +36,13 @@ body {
   font-size: 11px;
   padding: 4px 10px;
   border-radius: 20px;
-  border: 0.5px solid var(--color-border-secondary);
+  border: 0.5px solid var(--color-border);
   color: var(--color-text-secondary);
 }
 
 .opt-btn {
   padding: 4px 11px;
-  border: 0.5px solid var(--color-border-secondary);
+  border: 0.5px solid var(--color-border);
   border-radius: var(--border-radius-md);
   font-size: 12px;
   cursor: pointer;
@@ -96,19 +52,19 @@ body {
 }
 
 .opt-btn.active {
-  background: var(--color-background-info);
-  color: var(--color-text-info);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
   border-color: transparent;
 }
 
 /* Visualization common */
 .bar {
-  background: var(--color-background-info);
+  background: var(--color-accent);
   border-radius: 2px 2px 0 0;
   opacity: 0.65;
 }
 
 .sbar {
-  background: var(--color-background-info);
+  background: var(--color-accent);
   border-radius: 1px;
 }

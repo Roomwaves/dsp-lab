@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { useAppStore } from '../../stores/app';
-import { storeToRefs } from 'pinia';
-import { t } from '../../utils/i18n';
+const { t } = useI18n();
+import { useI18n } from 'vue-i18n';
 
-const appStore = useAppStore();
-const { language } = storeToRefs(appStore);
 </script>
 
 <template>
   <div class="tool-wrapper">
     <div class="header">
-      <div class="title">{{ t('n-coh', language) }}</div>
+      <div class="title">{{ t('sidebar.coherence') }}</div>
       <div class="subtitle">γ²(ω) = |Gₓᵧ|² / Gₓₓ · Gᵧᵧ</div>
     </div>
     
@@ -36,7 +33,7 @@ const { language } = storeToRefs(appStore);
     </div>
     
     <div class="controls">
-      <span class="pill success-pill">{{ t('high-coh', language) }}</span>
+      <span class="pill success-pill">{{ t('controls.high_coh') }}</span>
     </div>
   </div>
 </template>
@@ -65,8 +62,8 @@ const { language } = storeToRefs(appStore);
 }
 
 .vis-box {
-  background: var(--color-background-secondary);
-  border: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-lg);
   padding: 18px;
 }
@@ -85,17 +82,17 @@ const { language } = storeToRefs(appStore);
 
 .top-line {
   top: 0;
-  background: var(--color-border-secondary);
+  background: var(--color-border);
 }
 
 .mid-line {
   top: 50%;
-  background: var(--color-border-tertiary);
+  background: var(--color-border);
 }
 
 .bot-line {
   bottom: 0;
-  background: var(--color-border-tertiary);
+  background: var(--color-border);
 }
 
 .label {
