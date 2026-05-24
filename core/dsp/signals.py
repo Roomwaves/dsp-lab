@@ -12,3 +12,9 @@ def add_white_noise(signal: np.ndarray, snr_db: float) -> np.ndarray:
     Agrega ruido blanco a la señal para alcanzar una SNR especificada en dB.
     """
     raise NotImplementedError("Implementar en Issue #4")
+
+def generate_impulse(length: int, delay: int = 0) -> np.ndarray:
+    """
+    Genera un impulso unitario (delta de Dirac discreta).
+    """
+    raise NotImplementedError("Implementar en Issue #4")

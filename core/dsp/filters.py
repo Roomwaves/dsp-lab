@@ -50,7 +50,7 @@ def comb_filter(signal: np.ndarray, b0: float, b1: float, b2: float) -> np.ndarr
     a = 1.0
     return scipy.signal.lfilter(b, a, signal)
 
-class CombFilter:
+class CombFilterState:
     def __init__(self, b0: float, b1: float, b2: float) -> None:
         self.b0 = b0
         self.b1 = b1
@@ -69,6 +69,9 @@ class CombFilter:
     def reset(self) -> None:
         self._buffer.fill(0.0)
 
+# Alias para compatibilidad
+CombFilter = CombFilterState
+
 def apply_fir(signal: np.ndarray, coefficients: np.ndarray) -> np.ndarray:
     """
     Aplica un filtro FIR con coeficientes arbitrarios.
@@ -82,6 +85,34 @@ def truncate_fir(coefficients: np.ndarray, N: int) -> np.ndarray:
     if N < 1:
         raise ValueError(f"N must be >= 1, got {N}")
     if N > len(coefficients):
-        return coefficients.copy()
+        raise ValueError(f"N ({N}) cannot be greater than the number of coefficients ({len(coefficients)})")
     return coefficients[:N].copy()
+
+class FIRFilter:
+    def __init__(self, coefficients: np.ndarray) -> None:
+        self.coefficients = np.array(coefficients, dtype=float)
+        self.K = len(self.coefficients)
+        self._buffer = np.zeros(self.K - 1) if self.K > 1 else np.array([])
+
+    def process_block(self, block: np.ndarray) -> np.ndarray:
+        out = np.zeros_like(block, dtype=float)
+        if self.K == 0:
+            return out
+        if self.K == 1:
+            return block * self.coefficients[0]
+            
+        for i in range(len(block)):
+            x = block[i]
+            val = self.coefficients[0] * x
+            if self.K > 1:
+                val += np.sum(self.coefficients[1:] * self._buffer)
+                if self.K > 2:
+                    self._buffer[1:] = self._buffer[:-1]
+                self._buffer[0] = x
+            out[i] = val
+        return out
+
+    def reset(self) -> None:
+        if len(self._buffer) > 0:
+            self._buffer.fill(0.0)
 
