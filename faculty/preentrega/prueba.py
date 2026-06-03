@@ -94,3 +94,31 @@ plt.grid(True)
 
 plt.tight_layout()
 plt.show()
+
+fs = 44100
+duracion = 1.0  # 1 segundo es suficiente para análisis espectral
+t_vector = np.arange(0, duracion, 1/fs)
+
+# 1. Generación de señal de prueba
+f_tonos = [500, 1000, 5000]
+a_tonos = [1.0, 0.5, 0.8]
+señal_entrada = suma_tonos_puros(f_tonos, a_tonos, duracion, amp_ruido=0.1)
+
+# 2. Aplicación de filtros
+y_media = filtro_media_movil(señal_entrada, m=20, p=2)
+y_peine = filtro_peine(señal_entrada, a=0.1, b=0.5, c=0.4)
+y_fir = filtro_fir(señal_entrada)
+
+# 3. Visualización Temporal (Zoom inicial para ver formas de onda)
+# Usamos un slice del t_vector para ver los primeros ms
+slice_plot = slice(0, 1000) 
+graficar_temp(t_vector[slice_plot], 
+              [señal_entrada[slice_plot], y_media[slice_plot], y_fir[slice_plot]], 
+              mismo_eje=False)
+
+# 4. Visualización Espectral
+graficar_frecuencias(t_vector, [señal_entrada, y_media, y_fir], fs, mismo_eje=False)
+
+
+
+
