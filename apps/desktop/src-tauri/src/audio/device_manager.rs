@@ -203,6 +203,84 @@ enum DeviceFilter {
 }
 
 // ---------------------------------------------------------------------------
+// Filtro de visibilidad para el usuario
+// ---------------------------------------------------------------------------
+
+/// Devuelve `true` si el dispositivo debe aparecer en la UI.
+///
+/// En Linux, CPAL enumera tanto los dispositivos de alto nivel (los que
+/// muestra el panel de sonido del sistema) como las interfaces ALSA de bajo
+/// nivel (`hw:0,0`, `plughw:0,1`, `dmix:`, etc.) que el usuario nunca ve.
+/// Este filtro descarta esas interfaces internas y retiene solo los
+/// dispositivos "de usuario".
+///
+/// En macOS y Windows CPAL ya devuelve únicamente los dispositivos visibles
+/// al usuario, por lo que el filtro es un no-op en esas plataformas.
+fn is_user_visible_device(name: &str) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        // Prefijos de interfaces ALSA de bajo nivel que nunca aparecen en el
+        // panel de configuración de audio del sistema operativo.
+        const ALSA_INTERNAL_PREFIXES: &[&str] = &[
+            "hw:",
+            "plughw:",
+            "sysdefault:",
+            "dmix:",
+            "dsnoop:",
+            "front:",
+            "rear:",
+            "center_lfe:",
+            "side:",
+            "surround",
+            "hdmi:",
+            "iec958:",
+            "pulse:",        // interfaz ALSA → PulseAudio, no el servidor
+        ];
+
+        // Nombres genéricos de ALSA que no representan un dispositivo real.
+        const ALSA_GENERIC_NAMES: &[&str] = &[
+            "null",
+            "default",
+            "sysdefault",
+            "pipewire",   // el dispositivo "pipewire" de ALSA es un alias interno
+        ];
+
+        let lower = name.to_lowercase();
+
+        // Descartar por prefijo
+        if ALSA_INTERNAL_PREFIXES.iter().any(|p| lower.starts_with(p)) {
+            return false;
+        }
+
+        // Descartar por nombre exacto genérico
+        if ALSA_GENERIC_NAMES.iter().any(|n| lower.as_str() == *n) {
+            return false;
+        }
+
+        true
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        // macOS (CoreAudio) y Windows (WASAPI) ya filtran a nivel de driver.
+        let _ = name;
+        true
+    }
+}
+
+/// Deduplica una lista de dispositivos por nombre (case-insensitive).
+/// Mantiene la primera aparición de cada nombre, preservando el orden.
+/// Esto evita que el mismo hardware aparezca varias veces a través de
+/// distintas interfaces del sistema operativo.
+fn dedup_by_name(devices: Vec<AudioDeviceInfo>) -> Vec<AudioDeviceInfo> {
+    let mut seen = std::collections::HashSet::new();
+    devices
+        .into_iter()
+        .filter(|d| seen.insert(d.name.to_lowercase()))
+        .collect()
+}
+
+// ---------------------------------------------------------------------------
 // API pública
 // ---------------------------------------------------------------------------
 
@@ -222,13 +300,23 @@ pub fn list_input_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
         .input_devices()
         .map_err(|e| AudioError::HostUnavailable(e.to_string()))?;
 
-    let infos: Vec<AudioDeviceInfo> = devices
+    let mut infos: Vec<AudioDeviceInfo> = devices
         .filter_map(|dev| {
             let name = dev.name().unwrap_or_default();
+            // Descartar interfaces internas del SO que el usuario nunca ve.
+            if !is_user_visible_device(&name) {
+                return None;
+            }
             let is_default = name == default_name;
             build_device_info(&dev, is_default, DeviceFilter::Input)
         })
         .collect();
+
+    // Ordenar: dispositivo por defecto primero, luego alfabético.
+    infos.sort_by(|a, b| b.is_default.cmp(&a.is_default).then(a.name.cmp(&b.name)));
+
+    // Eliminar duplicados (mismo nombre, distintas interfaces del SO).
+    let infos = dedup_by_name(infos);
 
     Ok(infos)
 }
@@ -249,13 +337,23 @@ pub fn list_output_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
         .output_devices()
         .map_err(|e| AudioError::HostUnavailable(e.to_string()))?;
 
-    let infos: Vec<AudioDeviceInfo> = devices
+    let mut infos: Vec<AudioDeviceInfo> = devices
         .filter_map(|dev| {
             let name = dev.name().unwrap_or_default();
+            // Descartar interfaces internas del SO que el usuario nunca ve.
+            if !is_user_visible_device(&name) {
+                return None;
+            }
             let is_default = name == default_name;
             build_device_info(&dev, is_default, DeviceFilter::Output)
         })
         .collect();
+
+    // Ordenar: dispositivo por defecto primero, luego alfabético.
+    infos.sort_by(|a, b| b.is_default.cmp(&a.is_default).then(a.name.cmp(&b.name)));
+
+    // Eliminar duplicados (mismo nombre, distintas interfaces del SO).
+    let infos = dedup_by_name(infos);
 
     Ok(infos)
 }
