@@ -120,6 +120,12 @@ Una vez activado el entorno virtual, puede validar la correcta implementación m
 * **`apps/desktop/`**: Interfaz de usuario multiplataforma (HTML/CSS/TS/Vue).
 
 ---
+## Integrantes
+
+- Ferreyra, Florencia
+- Gonzalez, Tomás
+- Molina, Lara
+- Scafati, Jerónimo 
 
 ## 📄 Licencia
 Este proyecto se distribuye bajo la licencia PolyForm Noncommercial 1.0.0. No se permite el uso comercial sin autorización previa.
