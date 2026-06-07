@@ -1,10 +1,53 @@
+/* =============================================================
+   RoomWaves Design System — Dark Theme (Default)
+   DESIGN_GUIDE.md §7-A
+   ============================================================= */
+
+:root,
 [data-theme="dark"] {
-  --color-bg-primary: #0A0B0D;
-  --color-bg-secondary: #111318;
-  --color-bg-elevated: #181C24;
-  --color-border: #1E2330;
-  --color-text-primary: #E8EAED;
-  --color-text-secondary: #6B7280;
-  --color-accent: #00D97E;
-  --color-accent-dim: rgba(0, 217, 126, 0.12);
+  /* ── Surface Scale ─────────────────────────────────────── */
+  --surface-0: #050D14;   /* Deep Navy — app base, 3D canvas, hero bg */
+  --surface-1: #0A0A0C;   /* Near Black — cards, primary layouts */
+  --surface-2: #141416;   /* Dark Charcoal — nested panels, inputs */
+  --surface-3: #1E1E21;   /* Mid Charcoal — modals, elevated overlays */
+  --surface-4: #2A2A2E;   /* Lift Charcoal — hover states, active bgs */
+
+  /* ── Accent Colors ─────────────────────────────────────── */
+  --accent-lime: #83BCA9;          /* Warm Sage — primary interactive signal */
+  --accent-lime-pressed: #6FA794; /* Sage Pressed — hover/active state */
+  --accent-peach: #E09F67;        /* Warm Peach — secondary accent */
+
+  /* Transparent accent shades for backgrounds */
+  --accent-lime-05: rgba(131, 188, 169, 0.05);
+  --accent-lime-10: rgba(131, 188, 169, 0.10);
+  --accent-lime-15: rgba(131, 188, 169, 0.15);
+  --accent-lime-20: rgba(131, 188, 169, 0.20);
+  --accent-lime-30: rgba(131, 188, 169, 0.30);
+
+  /* ── Borders ───────────────────────────────────────────── */
+  --border-ghost:   #0C313E;  /* Quiet dividers, card borders */
+  --border-default: #124254;  /* Standard interactive boundaries */
+  --border-bold:    #1E586E;  /* Selected states, focused accents */
+
+  /* ── Text Colors ───────────────────────────────────────── */
+  --text-white:    #FFFFFF;
+  --text-offwhite: #D4DED9;
+  --text-silver:   #8CADA4;
+  --text-gray:     #5A756E;
+
+  /* ── Legacy Aliases (keep existing components working) ──── */
+  --color-bg-primary:    var(--surface-1);
+  --color-bg-secondary:  var(--surface-2);
+  --color-bg-elevated:   var(--surface-3);
+  --color-bg-tertiary:   var(--surface-3);
+  --color-bg-hover:      var(--surface-4);
+  --color-border:        var(--border-default);
+  --color-border-secondary: var(--border-bold);
+  --color-border-tertiary:  var(--border-ghost);
+  --color-text-primary:  var(--text-white);
+  --color-text-secondary: var(--text-silver);
+  --color-text-tertiary: var(--text-gray);
+  --color-accent:        var(--accent-lime);
+  --color-accent-dim:    var(--accent-lime-10);
+  --color-text-info:     var(--accent-lime);
 }

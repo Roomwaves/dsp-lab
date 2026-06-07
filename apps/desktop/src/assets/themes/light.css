@@ -1,10 +1,52 @@
-:root, [data-theme="light"] {
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F3F4F6;
-  --color-bg-elevated: #E5E7EB;
-  --color-border: #D1D5DB;
-  --color-text-primary: #111827;
-  --color-text-secondary: #4B5563;
-  --color-accent: #00D97E;
-  --color-accent-dim: rgba(0, 217, 126, 0.12);
+/* =============================================================
+   RoomWaves Design System — High-Contrast Light Theme
+   DESIGN_GUIDE.md §7-B
+   ============================================================= */
+
+[data-theme="light"] {
+  /* ── Surface Scale ─────────────────────────────────────── */
+  --surface-0: #F4F6F5;   /* Soft grey-sage base */
+  --surface-1: #FFFFFF;   /* Pure White — elevated cards/containers */
+  --surface-2: #EEF2F0;   /* Slightly darker — faders, nested panels */
+  --surface-3: #E1E7E4;   /* Modals, dropdown elements */
+  --surface-4: #D4DBD8;   /* Hover states */
+
+  /* ── Accent Colors ─────────────────────────────────────── */
+  --accent-lime: #1F6851;          /* Deep sage green — high text contrast */
+  --accent-lime-pressed: #164E3C; /* Darker sage — hover/active */
+  --accent-peach: #8E4B16;        /* Deep warm peach/amber */
+
+  /* Transparent accent shades */
+  --accent-lime-05: rgba(31, 104, 81, 0.05);
+  --accent-lime-10: rgba(31, 104, 81, 0.10);
+  --accent-lime-15: rgba(31, 104, 81, 0.15);
+  --accent-lime-20: rgba(31, 104, 81, 0.20);
+  --accent-lime-30: rgba(31, 104, 81, 0.30);
+
+  /* ── Borders ───────────────────────────────────────────── */
+  --border-ghost:   rgba(0, 0, 0, 0.08);
+  --border-default: #BFCFC9;
+  --border-bold:    #1F6851;
+
+  /* ── Text Colors ───────────────────────────────────────── */
+  --text-white:    #0B1714;   /* Deep charcoal-teal (headers) */
+  --text-offwhite: #152924;   /* Subheadings */
+  --text-silver:   #2C3E3A;   /* Readable body text */
+  --text-gray:     #4A605B;   /* Muted labels */
+
+  /* ── Legacy Aliases ─────────────────────────────────────── */
+  --color-bg-primary:    var(--surface-0);
+  --color-bg-secondary:  var(--surface-2);
+  --color-bg-elevated:   var(--surface-3);
+  --color-bg-tertiary:   var(--surface-3);
+  --color-bg-hover:      var(--surface-4);
+  --color-border:        var(--border-default);
+  --color-border-secondary: var(--border-bold);
+  --color-border-tertiary:  var(--border-ghost);
+  --color-text-primary:  var(--text-white);
+  --color-text-secondary: var(--text-silver);
+  --color-text-tertiary: var(--text-gray);
+  --color-accent:        var(--accent-lime);
+  --color-accent-dim:    var(--accent-lime-10);
+  --color-text-info:     var(--accent-lime);
 }

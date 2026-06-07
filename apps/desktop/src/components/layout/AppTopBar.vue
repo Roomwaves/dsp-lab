@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useMeasurementSession } from '../../stores/useMeasurementSession';
-import { IconCamera, IconActivity } from '@tabler/icons-vue';
+import { IconCamera } from '@tabler/icons-vue';
 
 const session = useMeasurementSession();
 const flash = ref(false);
@@ -19,8 +19,8 @@ function onCapture() {
 <template>
   <div class="app-topbar">
     <div class="brand">
-      <IconActivity size="18" class="logo" />
-      <span class="title">DSP Analyzer <span class="version">v0.1.0</span></span>
+      <img src="/path190.svg" alt="RoomWaves Icon" class="topbar-logo-img" />
+      <span class="title">DSP-LAB <span class="version">v0.1.0</span></span>
     </div>
     
     <div class="status-container">
@@ -60,38 +60,45 @@ function onCapture() {
 </template>
 
 <style scoped>
+/* DESIGN_GUIDE §3 — Global Site Navigation & Header */
 .app-topbar {
   height: 48px;
-  border-bottom: 1px solid var(--color-border-tertiary);
+  border-bottom: 1px solid var(--border-ghost);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   flex-shrink: 0;
-  background: var(--color-bg-primary);
+  background: var(--surface-1);
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 240px; /* match sidebar width roughly for alignment */
+  width: 240px;
 }
 
-.logo {
-  color: var(--color-accent);
+.topbar-logo-img {
+  width: 18px;
+  height: auto;
+
 }
 
 .title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-white);
+  letter-spacing: 0.02em;
 }
 
 .version {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  font-weight: normal;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-gray);
+  font-weight: 400;
+  margin-left: 2px;
 }
 
 .status-container {
@@ -105,41 +112,43 @@ function onCapture() {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
 }
 
 .live {
-  color: var(--color-accent);
+  color: var(--accent-lime);
 }
 
 .live .status-dot {
-  background: var(--color-accent);
-  box-shadow: 0 0 8px var(--color-accent);
+  background: var(--accent-lime);
+  box-shadow: 0 0 8px var(--accent-lime);
 }
 
 .no-signal {
-  color: var(--color-text-tertiary);
+  color: var(--text-gray);
 }
 
 .no-signal .status-dot {
-  border: 2px solid var(--color-text-tertiary);
+  border: 1.5px solid var(--border-default);
   background: transparent;
 }
 
 .computing {
-  color: #F59E0B;
+  color: var(--accent-peach);
 }
 
 .computing .status-dot {
-  border: 2px solid #F59E0B;
+  border: 1.5px solid var(--accent-peach);
   border-top-color: transparent;
   background: transparent;
   animation: spin 1s linear infinite;
@@ -147,7 +156,7 @@ function onCapture() {
 
 @keyframes spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
 
 .actions {
@@ -156,28 +165,31 @@ function onCapture() {
   width: 240px;
 }
 
+/* Utility Tonal Button (DESIGN_GUIDE §5) */
 .capture-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 4px;
-  background: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border-tertiary);
-  color: var(--color-text-primary);
-  font-size: 12px;
-  font-weight: 500;
+  padding: 6px 13px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-silver);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.15s var(--ease-material);
 }
 
 .capture-btn:not(:disabled):hover {
-  background: var(--color-bg-hover);
-  border-color: var(--color-border-secondary);
+  background: var(--surface-3);
+  border-color: var(--border-bold);
+  color: var(--text-white);
 }
 
 .capture-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 

@@ -1,6 +1,34 @@
+/* =============================================================
+   RoomWaves Design System — Base Tokens
+   All theme-independent variables live here.
+   Docs: apps/desktop/public/DESIGN_GUIDE.md
+   ============================================================= */
+
 :root {
-  --font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --border-radius-md: 6px;
-  --border-radius-lg: 10px;
+  /* ── Typography ─────────────────────────────────────────── */
+  /* UI / brand font — weights 300 & 400 ONLY (Varta restriction) */
+  --font-ui: 'Varta', 'Inter', system-ui, sans-serif;
+  --font-brand: 'Varta', 'Inter', system-ui, sans-serif;
+  /* Mono / metrics — bold weights up to 700 allowed */
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* ── Legacy alias (keep existing component references working) */
+  --font-family: var(--font-ui);
+
+  /* ── Border Radii Scale ──────────────────────────────────── */
+  --radius-sm: 4px;       /* Form controls, HUD buttons, badges */
+  --radius-md: 8px;       /* Cards, panels, room lists */
+  --radius-lg: 12px;      /* Bento cards, popups, main setups */
+  --radius-pill: 9999px;  /* Navbar tabs, floating toolbars, pill btns */
+
+  /* ── Legacy radius aliases ───────────────────────────────── */
+  --border-radius-sm: var(--radius-sm);
+  --border-radius-md: var(--radius-md);
+  --border-radius-lg: var(--radius-lg);
+
+  /* ── Easing Transitions ─────────────────────────────────── */
+  --ease-premium: cubic-bezier(0.2, 1, 0.3, 1);    /* Reveal / page transitions */
+  --ease-material: cubic-bezier(0.4, 0, 0.2, 1);   /* Hover / interactions */
+  --ease-elastic: cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Icon reveals */
+  --ease-direct: cubic-bezier(0.25, 0, 0.25, 1);   /* Drawers / overlays */
 }

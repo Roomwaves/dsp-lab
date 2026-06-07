@@ -1,22 +1,32 @@
 @import './themes/base.css';
-@import './themes/light.css';
 @import './themes/dark.css';
+@import './themes/light.css';
+
+/* =============================================================
+   RoomWaves Global Base Styles
+   DESIGN_GUIDE.md §1 – Core Visual Language
+   ============================================================= */
 
 body {
   margin: 0;
-  font-family: var(--font-family);
-  background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
+  /* Varta for UI — strictly 300 and 400 weight only */
+  font-family: var(--font-ui);
+  font-weight: 300;
+  background-color: var(--surface-0);
+  color: var(--text-white);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s var(--ease-material), color 0.3s var(--ease-material);
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* Common UI Elements */
+/* ── Minimum font size enforcement (DESIGN_GUIDE §2-B) ──────── */
+/* No user-facing text below 13px */
+
+/* ── Accessibility utility ──────────────────────────────────── */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -29,42 +39,244 @@ body {
   border-width: 0;
 }
 
-.pill {
+/* ═══════════════════════════════════════════════════════════════
+   BUTTON SYSTEM  (DESIGN_GUIDE.md §5)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Primary Action — Emissive Pill ──────────────────────── */
+/* Used for key conversion CTAs (hero, main actions) */
+.btn-primary {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 0.5px solid var(--color-border);
-  color: var(--color-text-secondary);
+  gap: 8px;
+  padding: 12px 32px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-lime-20);
+  border: 2px solid var(--accent-lime);
+  color: var(--accent-lime);
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s var(--ease-material);
+  animation: btn-breathe 3s ease-in-out infinite;
 }
 
-.opt-btn {
-  padding: 4px 11px;
-  border: 0.5px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  font-size: 12px;
-  cursor: pointer;
-  color: var(--color-text-secondary);
+.btn-primary:hover {
+  background: var(--accent-lime-30);
+  transform: translateX(10px);
+  box-shadow: 0 0 30px rgba(131, 188, 169, 0.4);
+  animation: none;
+}
+
+@keyframes btn-breathe {
+  0%, 100% { box-shadow: 0 0 10px rgba(131, 188, 169, 0.15); }
+  50%       { box-shadow: 0 0 20px rgba(131, 188, 169, 0.30); }
+}
+
+/* ── 2. Tactile Nav Button ──────────────────────────────────── */
+/* Navbar tabs, secondary options */
+.btn-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-default);
   background: transparent;
-  transition: background 0.1s, color 0.1s;
+  color: var(--text-silver);
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-material);
+}
+
+.btn-nav:hover {
+  color: var(--text-white);
+  border-color: var(--border-bold);
+  background: var(--surface-3);
+}
+
+/* ── 3. Utility Tonal Button ────────────────────────────────── */
+/* Builder toolbar, options widgets, forms */
+.btn-utility {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--surface-2);
+  color: var(--text-silver);
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-material);
+}
+
+.btn-utility:hover {
+  border-color: var(--border-bold);
+  background: var(--surface-3);
+  color: var(--text-white);
+}
+
+.btn-utility:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── 4. Solid Contrast Pill ─────────────────────────────────── */
+/* Authentication triggers, login */
+.btn-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: var(--radius-pill);
+  background: #ffffff;
+  border: none;
+  color: var(--surface-0);
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-material);
+}
+
+.btn-solid:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+/* ── Legacy opt-btn shim ────────────────────────────────────── */
+.opt-btn {
+  padding: 5px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-silver);
+  background: var(--surface-2);
+  font-family: var(--font-ui);
+  font-weight: 400;
+  transition: background 0.15s var(--ease-material), color 0.15s var(--ease-material), border-color 0.15s var(--ease-material);
 }
 
 .opt-btn.active {
-  background: var(--color-accent-dim);
-  color: var(--color-accent);
-  border-color: transparent;
+  background: var(--accent-lime-10);
+  color: var(--accent-lime);
+  border-color: var(--border-bold);
 }
 
-/* Visualization common */
+.opt-btn:hover:not(.active) {
+  background: var(--surface-3);
+  border-color: var(--border-bold);
+  color: var(--text-white);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD SYSTEM  (DESIGN_GUIDE.md §6)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Flat Architectural Glass Card (Neo-Brutalist) ──────────── */
+/* Major container docks: setup panels, dashboards, toolbars */
+.card-arch {
+  background: rgba(0, 26, 35, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: 4px 4px 0px 0px var(--surface-0);
+  transition: all 0.15s var(--ease-material);
+}
+
+.card-arch:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 4px 4px 0px 0px var(--surface-0);
+}
+
+.card-arch.active,
+.card-arch:focus-within {
+  box-shadow: 4px 4px 0px 0px var(--accent-lime);
+}
+
+/* ── Glassmorphic Floating Card ─────────────────────────────── */
+/* Floating controls, tooltips, overlays */
+.card-glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── Elevated Tonal Card ────────────────────────────────────── */
+/* Swatches, icon tiles, grid lists, collection items */
+.card-tonal {
+  background: var(--surface-1);
+  border: 1px solid var(--border-ghost);
+  border-radius: var(--radius-md);
+  padding: 24px;
+}
+
+/* ── Floating Pill Panel (Toolbar Dock) ─────────────────────── */
+/* BuilderToolbar and HUD floating panels */
+.panel-pill {
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  padding: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TYPOGRAPHY HELPERS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Mono metric values — allow bold weights */
+.metric,
+.value-mono {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Section labels — small uppercase */
+.label-section {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-gray);
+}
+
+/* ── Visualization common ───────────────────────────────────── */
 .bar {
-  background: var(--color-accent);
+  background: var(--accent-lime);
   border-radius: 2px 2px 0 0;
   opacity: 0.65;
 }
 
 .sbar {
-  background: var(--color-accent);
+  background: var(--accent-lime);
   border-radius: 1px;
+}
+
+/* ── Placeholder helpers ────────────────────────────────────── */
+.placeholder {
+  text-align: center;
+  color: var(--text-silver);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.placeholder-sub {
+  font-size: 13px;
+  color: var(--text-gray);
+  margin-top: 8px;
 }
