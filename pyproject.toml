@@ -14,6 +14,7 @@ dependencies = [
   "matplotlib",
   "pydantic",
   "python-multipart",
+  "soundfile>=0.14.0",
 ]
 
 [dependency-groups]
