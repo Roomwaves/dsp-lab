@@ -133,6 +133,12 @@ pytest
 * Scafati, Jerónimo
 
 ---
+## Intengrantes
+
+- Ferreyra, Florencia
+- Gonzalez, Tomás
+- Molina, Lara
+- Scafati, Jerónimo 
 
 ## 📄 Licencia
 
