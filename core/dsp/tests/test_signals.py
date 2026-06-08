@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
-from core.dsp.signals import generate_pure_tones, add_white_noise, generate_impulse
+
+from core.dsp.signals import add_white_noise, generate_impulse, generate_pure_tones, generate_square_wave, generate_triangle_wave, generate_white_noise, generate_pink_noise, generate_sweep
+
 
 class TestGeneratePureTones:
     def test_output_length(self):
@@ -115,3 +117,78 @@ class TestGenerateImpulse:
             generate_impulse(50, delay=50)
         with pytest.raises(ValueError):
             generate_impulse(50, delay=-1)
+
+
+class TestGenerateSquareWave:
+    def test_square_wave_shape(self):
+        fs = 1000
+        duration = 1.0
+        freq = 10.0
+        signal = generate_square_wave(freq, 2.0, fs, duration)
+        assert len(signal) == int(fs * duration)
+        # Check that values are +2.0 or -2.0 (with tolerance)
+        assert np.all(np.abs(np.abs(signal) - 2.0) < 1e-9)
+        # Check duty cycle (should be 50% positive/negative)
+        num_positive = np.sum(signal > 0)
+        assert np.abs(num_positive - 500) <= 5
+
+class TestGenerateTriangleWave:
+    def test_triangle_wave_shape(self):
+        fs = 1000
+        duration = 1.0
+        freq = 5.0
+        signal = generate_triangle_wave(freq, 1.5, fs, duration)
+        assert len(signal) == int(fs * duration)
+        assert np.max(signal) <= 1.5
+        assert np.min(signal) >= -1.5
+
+class TestGenerateWhiteNoise:
+    def test_white_noise_bounds(self):
+        fs = 10000
+        duration = 1.0
+        amp = 1.0
+        signal = generate_white_noise(amp, fs, duration, gaussian=False)
+        assert len(signal) == int(fs * duration)
+        assert np.max(signal) <= amp
+        assert np.min(signal) >= -amp
+
+    def test_gaussian_noise(self):
+        fs = 10000
+        duration = 1.0
+        amp = 1.5
+        signal = generate_white_noise(amp, fs, duration, gaussian=True)
+        assert len(signal) == int(fs * duration)
+        # In Gaussian noise, standard deviation should match amp (rms)
+        std_val = np.std(signal)
+        assert np.abs(std_val - amp) < 0.1
+
+class TestGeneratePinkNoise:
+    def test_pink_noise_peak(self):
+        fs = 8000
+        duration = 1.5
+        amp = 0.8
+        signal = generate_pink_noise(amp, fs, duration)
+        assert len(signal) == int(fs * duration)
+        # Pink noise should be normalized to peak
+        assert np.abs(np.max(np.abs(signal)) - amp) < 1e-5
+
+class TestGenerateSweep:
+    def test_linear_sweep(self):
+        fs = 8000
+        duration = 2.0
+        signal = generate_sweep(100.0, 1000.0, "linear", 1.0, fs, duration)
+        assert len(signal) == int(fs * duration)
+        assert np.max(np.abs(signal)) <= 1.0
+
+    def test_logarithmic_sweep(self):
+        fs = 8000
+        duration = 2.0
+        signal = generate_sweep(20.0, 4000.0, "logarithmic", 1.0, fs, duration)
+        assert len(signal) == int(fs * duration)
+        assert np.max(np.abs(signal)) <= 1.0
+
+    def test_invalid_log_sweep_raises(self):
+        with pytest.raises(ValueError):
+            generate_sweep(-10.0, 1000.0, "logarithmic", 1.0, 8000, 1.0)
+        with pytest.raises(ValueError):
+            generate_sweep(100.0, -1000.0, "logarithmic", 1.0, 8000, 1.0)

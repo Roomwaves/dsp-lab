@@ -36,34 +36,64 @@ def plot_spectrum(frequencies: np.ndarray, magnitudes: np.ndarray, title: str = 
     ax.grid(True, which='both')
     return fig
 
-def plot_frequency_response(frequencies: np.ndarray, H: np.ndarray, title: str = "Frequency Response", fig=None) -> plt.Figure:
+def plot_frequency_response(
+    frequencies: np.ndarray,
+    H: np.ndarray,
+    title: str = "Respuesta en Frecuencia",
+    fig=None
+) -> plt.Figure:
     """
-    Grafica la respuesta en frecuencia (Módulo en dB y Fase).
+    Grafica la respuesta en frecuencia de un sistema (Módulo en dB y Fase en
+    radianes). Aplica desenrollado de fase automático para un análisis
+    riguroso de la linealidad de fase.
     """
     if fig is None:
-        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
     else:
         axes = fig.get_axes()
-        if len(axes) >= 2:
-            ax1, ax2 = axes[0], axes[1]
-        else:
-            ax1, ax2 = fig.subplots(2, 1, sharex=True)
+        ax1, ax2 = axes[0], axes[1]
 
-    mag_db = 20 * np.log10(np.clip(np.abs(H), 1e-15, None))
-    phase = np.angle(H)
+    # Cómputo de Magnitud en dB resguardando estabilidad numérico-gráfica
+    mag_db = 20 * np.log10(np.clip(np.abs(H), 1e-12, None))
+    
+    # Desenvolvimiento de fase (unwrap) para revelar fase lineal y retardo
+    # de grupo
+    phase_unwrapped = np.unwrap(np.angle(H))
 
-    ax1.plot(frequencies, mag_db)
-    ax1.set_xscale('log')
-    ax1.set_ylabel("Magnitude [dB]")
-    ax1.grid(True, which='both')
-    ax1.set_title(title)
+    # --- Subplot 1: Magnitud ---
+    ax1.semilogx(
+        frequencies,
+        mag_db,
+        color='#1f77b4',
+        linewidth=1.8,
+        label=r'$|H(\omega)|$'
+    )
+    ax1.set_ylabel("Magnitud [dB]", fontsize=11, fontweight='bold')
+    ax1.grid(True, which='both', linestyle='--', alpha=0.5)
+    ax1.grid(True, which='minor', linestyle=':', alpha=0.2)
+    ax1.set_title(title, fontsize=13, fontweight='bold', pad=12)
+    ax1.legend(loc='upper right')
+    
+    # Línea de referencia típica a -3 dB si es pertinente al gráfico
+    if np.max(mag_db) >= 0 and np.min(mag_db) <= -3:
+        ax1.axhline(-3, color='r', linestyle=':', alpha=0.7, label='-3 dB')
 
-    ax2.plot(frequencies, phase)
-    ax2.set_xscale('log')
-    ax2.set_xlabel("Frequency [Hz]")
-    ax2.set_ylabel("Phase [rad]")
-    ax2.grid(True, which='both')
+    # --- Subplot 2: Fase ---
+    ax2.semilogx(
+        frequencies,
+        phase_unwrapped,
+        color='#ff7f0e',
+        linewidth=1.8,
+        label=r'$\theta(\omega)$'
+    )
+    ax2.set_xlabel("Frecuencia [Hz]", fontsize=11, fontweight='bold')
+    ax2.set_ylabel("Fase [rad]", fontsize=11, fontweight='bold')
+    ax2.grid(True, which='both', linestyle='--', alpha=0.5)
+    ax2.grid(True, which='minor', linestyle=':', alpha=0.2)
+    ax2.legend(loc='upper right')
 
+    # Ajuste fino de márgenes internos
+    plt.tight_layout()
     return fig
 
 def plot_coherence(frequencies: np.ndarray, coherence: np.ndarray, title: str = "Coherence", ax=None) -> plt.Figure:

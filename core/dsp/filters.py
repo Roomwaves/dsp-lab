@@ -17,24 +17,49 @@ def moving_average(signal: np.ndarray, M: int, passes: int = 1) -> np.ndarray:
     return y
 
 class MovingAverageFilter:
-    def __init__(self, M: int) -> None:
+    """
+    Filtro de media móvil causal con soporte para procesamiento por bloques y
+    múltiples pasadas.
+    
+    CORRECCIÓN DSP:
+    1. Se añadió el parámetro 'passes' en __init__ para corregir el error de
+       estado en cascada, evitando el valor hardcodeado passes=1.
+    2. Si passes > 1, cada pasada consecutiva del filtro requiere su propio
+       historial de estados (retraso acumulado). Se reimplementó el
+       procesamiento de bloques utilizando `scipy.signal.lfilter` manteniendo
+       de manera consecutiva los vectores de condición inicial y final (zi y zf)
+       para cada pasada. De esta manera, el filtrado por bloques produce un
+       resultado matemáticamente idéntico a filtrar la señal completa de una
+       sola vez.
+    """
+    def __init__(self, M: int, passes: int = 1) -> None:
         if M < 1:
             raise ValueError("M must be >= 1")
+        if passes < 1:
+            raise ValueError("passes must be >= 1")
         self.M = M
+        self.passes = passes
         self.reset()
 
     def reset(self) -> None:
-        self.state = np.zeros(self.M - 1, dtype=float)
+        # Inicializamos condiciones iniciales (zi) de tamaño M-1 en cero
+        self.states = [
+            np.zeros(self.M - 1, dtype=float)
+            for _ in range(self.passes)
+        ]
 
     def process_block(self, block: np.ndarray) -> np.ndarray:
-        x_padded = np.concatenate([self.state, block])
-        y_padded = moving_average(x_padded, self.M, passes=1)
-        y = y_padded[self.M - 1:]
-        if len(block) >= self.M - 1:
-            self.state = block[-(self.M - 1):].copy()
-        else:
-            self.state = np.concatenate([self.state[len(block):], block])
-        return y
+        # Los coeficientes del filtro de media móvil para una etapa
+        b = np.ones(self.M) / self.M
+        a = np.array([1.0])
+        current_signal = block.astype(float)
+        # Aplicamos lfilter secuencialmente para cada pasada
+        for k in range(self.passes):
+            current_signal, zf = scipy.signal.lfilter(
+                b, a, current_signal, zi=self.states[k]
+            )
+            self.states[k] = zf
+        return current_signal
 
 
 # --- Issue #2: comb_filter ---

@@ -1,6 +1,7 @@
 import numpy as np
 import soundfile as sf
 
+
 def load_audio(filepath: str) -> tuple[np.ndarray, float]:
     """
     Carga un archivo de audio (.wav).

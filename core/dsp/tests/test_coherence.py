@@ -1,6 +1,7 @@
 import numpy as np
-import pytest
-from core.dsp.coherence import compute_psd, compute_cpsd, compute_coherence
+
+from core.dsp.coherence import compute_coherence, compute_cpsd, compute_psd
+
 
 class TestPSDAndCPSD:
     def test_psd_real_positive(self):

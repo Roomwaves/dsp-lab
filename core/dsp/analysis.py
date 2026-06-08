@@ -1,28 +1,89 @@
 import numpy as np
 
 
-def compute_fft(signal: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray]:
+def compute_fft(
+    signal: np.ndarray,
+    fs: float,
+    window_size: int | None = None,
+    overlap: float = 0.75,
+    window_type: str = 'hann'
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Calcula la Transformada de Fourier Discreta de una señal.
     Retorna (frecuencias, magnitudes).
+    Si window_size es provisto, realiza un promedio tipo Welch del espectro de amplitud
+    (raíz cuadrada del PSD) para suavizar y reducir el ruido/resolución excesiva.
+    De lo contrario, calcula la FFT completa clásica de la señal.
     """
-    n = len(signal)
-    freqs = np.fft.rfftfreq(n, d=1/fs)
-    mags = np.abs(np.fft.rfft(signal))
-    return freqs, mags
+    if window_size is not None:
+        import scipy.signal
+        nperseg = min(len(signal), window_size)
+        noverlap = int(nperseg * overlap)
+        freqs, Gxx = scipy.signal.welch(
+            signal, fs=fs, window=window_type, nperseg=nperseg, noverlap=noverlap, scaling='spectrum'
+        )
+        # Tomamos la raíz de Gxx para obtener el espectro de amplitud promediado
+        mags = np.sqrt(Gxx)
+        return freqs, mags
+    else:
+        n = len(signal)
+        freqs = np.fft.rfftfreq(n, d=1/fs)
+        mags = np.abs(np.fft.rfft(signal))
+        return freqs, mags
 
-def compute_frequency_response(x: np.ndarray, y: np.ndarray, fs: float) -> tuple[np.ndarray, np.ndarray]:
+def compute_frequency_response(
+    x: np.ndarray,
+    y: np.ndarray,
+    fs: float,
+    window_size: int | None = None,
+    overlap: float = 0.75,
+    window_type: str = 'hann'
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Calcula la respuesta en frecuencia H(w) = Y(w) / X(w).
-    Retorna (frecuencias, H_complejo).
+    Si window_size es provisto, usa el estimador H1 = Gxy / Gxx basado en el método de Welch
+    para promediar segmentos y suavizar el ruido.
+    De lo contrario, calcula H(w) = Y(w) / X(w) sobre la señal completa (con un umbral de seguridad).
     """
-    X = np.fft.rfft(x)
-    Y = np.fft.rfft(y)
-    denom = X.copy()
-    denom[denom == 0] = 1e-15
-    H = Y / denom
-    freqs = np.fft.rfftfreq(len(x), d=1/fs)
-    return freqs, H
+    if window_size is not None:
+        import scipy.signal
+        nperseg = min(len(x), window_size)
+        noverlap = int(nperseg * overlap)
+        
+        freqs, Gxx = scipy.signal.welch(
+            x, fs=fs, window=window_type, nperseg=nperseg, noverlap=noverlap, scaling='density'
+        )
+        _, Gxy = scipy.signal.csd(
+            x, y, fs=fs, window=window_type, nperseg=nperseg, noverlap=noverlap, scaling='density'
+        )
+        
+        # Umbral inferior de seguridad para Gxx
+        threshold = 1e-12
+        denom = Gxx.copy()
+        zero_or_small = denom < threshold
+        denom[zero_or_small] = threshold
+        
+        H = Gxy / denom
+        return freqs, H
+    else:
+        X = np.fft.rfft(x)
+        Y = np.fft.rfft(y)
+        
+        # Definimos un umbral inferior de seguridad para la magnitud de X(w)
+        threshold = 1e-10
+        
+        # Creamos copia del denominador e inyectamos umbral con fase original
+        denom = X.copy()
+        zero_or_small = np.abs(X) < threshold
+        
+        # Para los valores críticos, fijamos una magnitud mínima sin alterar la fase
+        denom[zero_or_small] = threshold * np.exp(
+            1j * np.angle(X[zero_or_small])
+        )
+        
+        H = Y / denom
+        freqs = np.fft.rfftfreq(len(x), d=1/fs)
+        return freqs, H
 
 def compute_magnitude_db(H: np.ndarray) -> np.ndarray:
     """
