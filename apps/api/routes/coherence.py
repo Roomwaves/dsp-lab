@@ -43,7 +43,13 @@ def coherence_endpoint(body: CoherenceInput) -> CoherenceOutput:
     try:
         x = np.array(body.x)
         y = np.array(body.y)
-        freqs, coherence = compute_coherence(x, y, body.fs, n_segments=body.n_segments)
+        freqs, coherence = compute_coherence(
+            x, y, body.fs,
+            n_segments=body.n_segments,
+            window_size=body.window_size,
+            overlap=body.overlap,
+            window_type=body.window_type
+        )
         return CoherenceOutput(
             frequencies=freqs.tolist(),
             coherence=coherence.tolist()

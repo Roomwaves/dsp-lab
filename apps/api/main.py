@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import analysis, coherence, filters
+from .routes import analysis, coherence, filters, signals
 from .routes import io as io_routes
 
 ALLOWED_ORIGINS = [
@@ -32,6 +32,7 @@ app.include_router(filters.router)
 app.include_router(analysis.router)
 app.include_router(coherence.router)
 app.include_router(io_routes.router)
+app.include_router(signals.router)
 
 @app.get("/health")
 def health():
