@@ -203,13 +203,292 @@ enum DeviceFilter {
 }
 
 // ---------------------------------------------------------------------------
+// Estrategia Linux: enumeración orientada al usuario via PipeWire
+// ---------------------------------------------------------------------------
+//
+// En Linux, CPAL usa el host ALSA que devuelve hasta 30+ dispositivos de bajo
+// nivel ("hw:CARD=...", "plughw:...", "dmix:...", etc.) que el usuario nunca
+// ve en el panel de sonido.
+//
+// Los nombres que el panel del sistema muestra vienen de PipeWire (o PulseAudio).
+// Estrategia:
+//   1. Consultar `pw-dump` (JSON) para obtener los nodos de tipo Audio/Sink
+//      y Audio/Source con sus nombres amigables ("node.description").
+//   2. Para cada nodo encontrado, usar el dispositivo ALSA "default" como
+//      vehículo de transporte (PipeWire lo intercepta y redirige al hardware
+//      correcto en tiempo de ejecución).
+//   3. Si pw-dump no está disponible (sistema con ALSA puro), usar solo el
+//      dispositivo "default" de CPAL con el nombre que devuelva el driver.
+
+/// Nodo de PipeWire detectado por pw-dump.
+#[cfg(target_os = "linux")]
+#[derive(Debug, Clone)]
+pub struct PipewireNode {
+    pub name: String,
+    pub channels: u16,
+}
+
+/// Consulta `pw-dump` y devuelve los nombres de los nodos de audio del tipo dado.
+///
+/// `media_class` debe ser `"Audio/Sink"` (outputs) o `"Audio/Source"` (inputs).
+/// Filtra los streams de aplicaciones (class "Stream/...").
+#[cfg(target_os = "linux")]
+fn query_pipewire_nodes(media_class: &str) -> Vec<PipewireNode> {
+    use std::process::Command;
+
+    let Ok(output) = Command::new("pw-dump").output() else {
+        return Vec::new();
+    };
+
+    if !output.status.success() {
+        return Vec::new();
+    }
+
+    // pw-dump produce un JSON array de objetos
+    let Ok(text) = std::str::from_utf8(&output.stdout) else {
+        return Vec::new();
+    };
+
+    // Parse manual mínimo — evita añadir serde_json al build de producción.
+    // Buscamos bloques del tipo:
+    //   "media.class": "Audio/Sink"   +  "node.description": "<nombre>"  +  "audio.channels": <canales>
+    let mut nodes = Vec::new();
+    let mut current_class = String::new();
+    let mut current_desc = String::new();
+    let mut current_channels = 2; // Default a estéreo
+
+    for line in text.lines() {
+        let line = line.trim();
+
+        if let Some(val) = json_str_value(line, "media.class") {
+            current_class = val;
+            current_desc.clear();
+        }
+        if let Some(val) = json_str_value(line, "node.description") {
+            current_desc = val;
+        }
+        if let Some(val) = json_int_value(line, "audio.channels") {
+            current_channels = val;
+        }
+
+        // Cuando tenemos ambos campos y el bloque cierra, registramos
+        if line == "}," || line == "}" {
+            if current_class == media_class && !current_desc.is_empty() {
+                nodes.push(PipewireNode {
+                    name: std::mem::take(&mut current_desc),
+                    channels: current_channels,
+                });
+            }
+            current_class.clear();
+            current_desc.clear();
+            current_channels = 2; // Reset
+        }
+    }
+
+    nodes
+}
+
+/// Extrae el valor string de una línea JSON del estilo `"key": "value",`
+#[cfg(target_os = "linux")]
+fn json_str_value(line: &str, key: &str) -> Option<String> {
+    // Busca: "key": "value"   o   "key": "value",
+    let prefix = format!("\"{key}\": \"");
+    let start = line.find(&prefix)?;
+    let after = &line[start + prefix.len()..];
+    let end = after.find('"')?;
+    Some(after[..end].to_string())
+}
+
+/// Extrae el valor numérico de una línea JSON del estilo `"key": value,` o `"key": value`
+#[cfg(target_os = "linux")]
+fn json_int_value(line: &str, key: &str) -> Option<u16> {
+    let prefix = format!("\"{key}\": ");
+    let start = line.find(&prefix)?;
+    let after = &line[start + prefix.len()..];
+    let end = after.find(|c: char| !c.is_ascii_digit())?;
+    after[..end].parse().ok()
+}
+
+/// Obtiene las configs CPAL del dispositivo "default" de CPAL para un filtro dado.
+/// El dispositivo "default" es el que PipeWire/PulseAudio intercepta y redirige
+/// al hardware activo, por lo que sus configs son representativas.
+#[cfg(target_os = "linux")]
+fn default_cpal_configs(filter: DeviceFilter) -> Vec<SupportedConfig> {
+    let host = cpal::default_host();
+    let dev = match filter {
+        DeviceFilter::Input  => host.default_input_device(),
+        DeviceFilter::Output => host.default_output_device(),
+    };
+    let Some(dev) = dev else { return Vec::new() };
+
+    match filter {
+        DeviceFilter::Input  => dev.supported_input_configs()
+            .map(build_supported_configs).unwrap_or_default(),
+        DeviceFilter::Output => dev.supported_output_configs()
+            .map(build_supported_configs).unwrap_or_default(),
+    }
+}
+
+/// Obtiene el nombre ALSA del dispositivo default (ej: "default" en ALSA/PipeWire).
+#[cfg(target_os = "linux")]
+fn default_alsa_device_name(filter: DeviceFilter) -> String {
+    let host = cpal::default_host();
+    let dev = match filter {
+        DeviceFilter::Input  => host.default_input_device(),
+        DeviceFilter::Output => host.default_output_device(),
+    };
+    dev.and_then(|d| d.name().ok()).unwrap_or_else(|| "default".to_string())
+}
+
+/// En Linux construye la lista de inputs orientada al usuario.
+///
+/// Muestra exactamente los dispositivos que aparecen en el panel de
+/// configuración de audio del sistema operativo (Audio/Source de PipeWire).
+#[cfg(target_os = "linux")]
+pub fn list_input_devices_linux() -> Result<Vec<AudioDeviceInfo>, AudioError> {
+    let pw_sources = query_pipewire_nodes("Audio/Source");
+    let alsa_name  = default_alsa_device_name(DeviceFilter::Input);
+    let configs    = default_cpal_configs(DeviceFilter::Input);
+
+    if configs.is_empty() {
+        // Sin dispositivo de input en el sistema
+        return Ok(Vec::new());
+    }
+
+    if pw_sources.is_empty() {
+        // PipeWire no disponible — mostrar solo el dispositivo default de CPAL
+        return Ok(vec![AudioDeviceInfo {
+            id:               stable_id(&alsa_name),
+            name:             alsa_name,
+            device_type:      "input".to_string(),
+            is_default:       true,
+            supported_configs: configs,
+        }]);
+    }
+
+    // Construir una entrada por cada Source de PipeWire.
+    // Todos comparten las mismas configs CPAL (el transporte es "default"),
+    // pero con el número de canales limitados al máximo de canales físicos de PipeWire.
+    let devices = pw_sources
+        .into_iter()
+        .enumerate()
+        .map(|(i, node)| {
+            let mut node_configs = configs.clone();
+            for cfg in &mut node_configs {
+                cfg.channels = std::cmp::min(cfg.channels, node.channels);
+            }
+            AudioDeviceInfo {
+                id:               stable_id(&format!("{alsa_name}:source:{i}:{}", node.name)),
+                name:             node.name,
+                device_type:      "input".to_string(),
+                is_default:       i == 0,
+                supported_configs: node_configs,
+            }
+        })
+        .collect();
+
+    Ok(devices)
+}
+
+/// En Linux construye la lista de outputs orientada al usuario.
+///
+/// Muestra exactamente los dispositivos que aparecen en el panel de
+/// configuración de audio del sistema operativo (Audio/Sink de PipeWire).
+#[cfg(target_os = "linux")]
+pub fn list_output_devices_linux() -> Result<Vec<AudioDeviceInfo>, AudioError> {
+    let pw_sinks  = query_pipewire_nodes("Audio/Sink");
+    let alsa_name = default_alsa_device_name(DeviceFilter::Output);
+    let configs   = default_cpal_configs(DeviceFilter::Output);
+
+    if configs.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    if pw_sinks.is_empty() {
+        return Ok(vec![AudioDeviceInfo {
+            id:               stable_id(&alsa_name),
+            name:             alsa_name,
+            device_type:      "output".to_string(),
+            is_default:       true,
+            supported_configs: configs,
+        }]);
+    }
+
+    let devices = pw_sinks
+        .into_iter()
+        .enumerate()
+        .map(|(i, node)| {
+            let mut node_configs = configs.clone();
+            for cfg in &mut node_configs {
+                cfg.channels = std::cmp::min(cfg.channels, node.channels);
+            }
+            AudioDeviceInfo {
+                id:               stable_id(&format!("{alsa_name}:sink:{i}:{}", node.name)),
+                name:             node.name,
+                device_type:      "output".to_string(),
+                is_default:       i == 0,
+                supported_configs: node_configs,
+            }
+        })
+        .collect();
+
+    Ok(devices)
+}
+
+/// Deduplica una lista de dispositivos por nombre (case-insensitive).
+/// Mantiene la primera aparición de cada nombre, preservando el orden.
+/// Solo se usa en el path no-Linux donde la enumeración CPAL puede tener
+/// duplicados entre distintas interfaces del OS.
+#[cfg(not(target_os = "linux"))]
+fn dedup_by_name(devices: Vec<AudioDeviceInfo>) -> Vec<AudioDeviceInfo> {
+    let mut seen = std::collections::HashSet::new();
+    devices
+        .into_iter()
+        .filter(|d| seen.insert(d.name.to_lowercase()))
+        .collect()
+}
+
+/// En plataformas no-Linux filtra dispositivos de bajo nivel por prefijo de nombre.
+#[cfg(not(target_os = "linux"))]
+fn is_user_visible_device(_name: &str) -> bool {
+    true
+}
+
+
+fn add_virtual_simulator(mut devices: Vec<AudioDeviceInfo>) -> Vec<AudioDeviceInfo> {
+    devices.insert(0, AudioDeviceInfo {
+        id: "virtual-simulator".to_string(),
+        name: "Simulador de Señal (Virtual)".to_string(),
+        device_type: "input".to_string(),
+        is_default: false,
+        supported_configs: vec![
+            SupportedConfig {
+                channels: 2,
+                min_sample_rate: 44100,
+                max_sample_rate: 48000,
+                sample_format: "f32".to_string(),
+                buffer_size_range: Some((128, 2048)),
+            }
+        ],
+    });
+    devices
+}
+
+// ---------------------------------------------------------------------------
 // API pública
 // ---------------------------------------------------------------------------
 
-/// Enumera todos los dispositivos de **input** disponibles en el sistema.
+/// Enumera los dispositivos de **input** disponibles orientados al usuario.
 ///
-/// Los dispositivos que fallen durante la introspección se omiten silenciosamente.
-/// Si no hay dispositivos, devuelve un `Vec` vacío (no panic).
+/// En Linux delega a `list_input_devices_linux()` que devuelve solo el
+/// dispositivo activo de PipeWire/PulseAudio con nombre amigable.
+/// En macOS/Windows enumera todos los dispositivos vía CPAL (ya son amigables).
+#[cfg(target_os = "linux")]
+pub fn list_input_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
+    list_input_devices_linux().map(add_virtual_simulator)
+}
+
+#[cfg(not(target_os = "linux"))]
 pub fn list_input_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
     let host = cpal::default_host();
 
@@ -222,7 +501,7 @@ pub fn list_input_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
         .input_devices()
         .map_err(|e| AudioError::HostUnavailable(e.to_string()))?;
 
-    let infos: Vec<AudioDeviceInfo> = devices
+    let mut infos: Vec<AudioDeviceInfo> = devices
         .filter_map(|dev| {
             let name = dev.name().unwrap_or_default();
             let is_default = name == default_name;
@@ -230,13 +509,22 @@ pub fn list_input_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
         })
         .collect();
 
-    Ok(infos)
+    infos.sort_by(|a, b| b.is_default.cmp(&a.is_default).then(a.name.cmp(&b.name)));
+    let infos = dedup_by_name(infos);
+    Ok(add_virtual_simulator(infos))
 }
 
-/// Enumera todos los dispositivos de **output** disponibles en el sistema.
+/// Enumera los dispositivos de **output** disponibles orientados al usuario.
 ///
-/// Los dispositivos que fallen durante la introspección se omiten silenciosamente.
-/// Si no hay dispositivos, devuelve un `Vec` vacío (no panic).
+/// En Linux delega a `list_output_devices_linux()` que devuelve solo el
+/// dispositivo activo de PipeWire/PulseAudio con nombre amigable.
+/// En macOS/Windows enumera todos los dispositivos vía CPAL (ya son amigables).
+#[cfg(target_os = "linux")]
+pub fn list_output_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
+    list_output_devices_linux()
+}
+
+#[cfg(not(target_os = "linux"))]
 pub fn list_output_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
     let host = cpal::default_host();
 
@@ -249,7 +537,7 @@ pub fn list_output_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
         .output_devices()
         .map_err(|e| AudioError::HostUnavailable(e.to_string()))?;
 
-    let infos: Vec<AudioDeviceInfo> = devices
+    let mut infos: Vec<AudioDeviceInfo> = devices
         .filter_map(|dev| {
             let name = dev.name().unwrap_or_default();
             let is_default = name == default_name;
@@ -257,6 +545,8 @@ pub fn list_output_devices() -> Result<Vec<AudioDeviceInfo>, AudioError> {
         })
         .collect();
 
+    infos.sort_by(|a, b| b.is_default.cmp(&a.is_default).then(a.name.cmp(&b.name)));
+    let infos = dedup_by_name(infos);
     Ok(infos)
 }
 
@@ -287,7 +577,12 @@ pub fn default_input_device() -> Result<AudioDeviceInfo, AudioError> {
 /// Invocado desde Vue con: `invoke('get_input_devices')`
 #[tauri::command]
 pub async fn get_input_devices() -> Result<Vec<AudioDeviceInfo>, String> {
-    list_input_devices().map_err(Into::into)
+    let result = list_input_devices().map_err(Into::into);
+    if let Ok(ref devs) = result {
+        eprintln!("[get_input_devices] devolviendo {} dispositivos: {:?}",
+            devs.len(), devs.iter().map(|d| &d.name).collect::<Vec<_>>());
+    }
+    result
 }
 
 /// Devuelve la lista de dispositivos de output disponibles.
@@ -333,6 +628,54 @@ mod tests {
                 }
             }
             Err(_) => { /* aceptable en entorno sin audio */ }
+        }
+    }
+
+    /// Test de diagnóstico: imprime los nombres de dispositivos que devuelve
+    /// list_input_devices() después del filtrado. Ejecutar con:
+    ///   cargo test print_input_device_names -- --nocapture
+    #[test]
+    fn print_input_device_names() {
+        println!("\n=== list_input_devices() result ===");
+        match list_input_devices() {
+            Ok(devices) => {
+                if devices.is_empty() {
+                    println!("  (lista vacía)");
+                }
+                for d in &devices {
+                    println!("  [{default}] id={id} name={name:?}",
+                        default = if d.is_default { "DEFAULT" } else { "      " },
+                        id = d.id,
+                        name = d.name,
+                    );
+                }
+            }
+            Err(e) => println!("  ERROR: {e}"),
+        }
+
+        println!("\n=== list_output_devices() result ===");
+        match list_output_devices() {
+            Ok(devices) => {
+                if devices.is_empty() {
+                    println!("  (lista vacía)");
+                }
+                for d in &devices {
+                    println!("  [{default}] id={id} name={name:?}",
+                        default = if d.is_default { "DEFAULT" } else { "      " },
+                        id = d.id,
+                        name = d.name,
+                    );
+                }
+            }
+            Err(e) => println!("  ERROR: {e}"),
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            println!("\n=== query_pipewire_nodes(Audio/Source) ===");
+            println!("  {:?}", query_pipewire_nodes("Audio/Source"));
+            println!("\n=== query_pipewire_nodes(Audio/Sink) ===");
+            println!("  {:?}", query_pipewire_nodes("Audio/Sink"));
         }
     }
 

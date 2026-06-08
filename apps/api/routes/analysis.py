@@ -24,7 +24,12 @@ router = APIRouter(prefix="/analysis", tags=["Analysis"])
 def fft_endpoint(body: SignalInput) -> FFTOutput:
     try:
         signal = np.array(body.samples)
-        freqs, mags = compute_fft(signal, body.fs)
+        freqs, mags = compute_fft(
+            signal, body.fs,
+            window_size=body.window_size,
+            overlap=body.overlap,
+            window_type=body.window_type
+        )
         return FFTOutput(
             frequencies=freqs.tolist(),
             magnitudes=mags.tolist()
@@ -39,7 +44,12 @@ def frequency_response_endpoint(
     try:
         x = np.array(body.x)
         y = np.array(body.y)
-        freqs, h_complex = compute_frequency_response(x, y, body.fs)
+        freqs, h_complex = compute_frequency_response(
+            x, y, body.fs,
+            window_size=body.window_size,
+            overlap=body.overlap,
+            window_type=body.window_type
+        )
         
         mag_db = compute_magnitude_db(h_complex)
         phase_rad = compute_phase(h_complex)

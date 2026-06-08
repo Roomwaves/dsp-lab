@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
+
 from core.dsp.filters import (
-    moving_average,
     MovingAverageFilter,
-    comb_filter,
-    CombFilterState,
     apply_fir,
+    comb_filter,
+    moving_average,
     truncate_fir,
-    FIRFilter
 )
+
 
 class TestMovingAverage:
     def test_dc_preservation(self):
@@ -65,6 +65,20 @@ class TestMovingAverageFilter:
         out_stateful = np.concatenate([y1, y2, y3])
         out_batch = moving_average(x, M=5)
         np.testing.assert_allclose(out_stateful[10:-10], out_batch[10:-10])
+
+    def test_multi_pass_block_consistency_with_batch(self):
+        x = np.random.randn(1500)
+        for passes in [1, 2, 3]:
+            ma = MovingAverageFilter(M=5, passes=passes)
+            # Process in blocks of 512
+            y1 = ma.process_block(x[:512])
+            y2 = ma.process_block(x[512:1024])
+            y3 = ma.process_block(x[1024:])
+            out_stateful = np.concatenate([y1, y2, y3])
+            out_batch = moving_average(x, M=5, passes=passes)
+            # Con scipy.signal.lfilter con zi/zf, la igualdad matemática
+            # debe ser exacta en todo el vector
+            np.testing.assert_allclose(out_stateful, out_batch)
 
     def test_reset_restores_initial_state(self):
         x = np.random.randn(500)

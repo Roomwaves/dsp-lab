@@ -2,31 +2,18 @@
 import { ref, watch } from 'vue';
 import { useAppStore } from '../../stores/useAppStore';
 import { useMeasurementSession } from '../../stores/useMeasurementSession';
+import { useAudioStore } from '../../stores/useAudioStore';
 import { useI18n } from 'vue-i18n';
-import { IconWaveSine, IconSettings, IconChevronRight } from '@tabler/icons-vue';
+import { 
+  IconSettings, 
+  IconChevronRight, 
+  IconArrowLeft 
+} from '@tabler/icons-vue';
 
 const { t } = useI18n();
 const appStore = useAppStore();
+const audioStore = useAudioStore();
 const session = useMeasurementSession();
-
-// Local dragover state
-const isDragoverX = ref(false);
-const isDragoverY = ref(false);
-
-// Local upload state
-const isLoadingX = ref(false);
-const isLoadingY = ref(false);
-
-// Inline errors for dropzones
-const errorX = ref<string | null>(null);
-const errorY = ref<string | null>(null);
-
-// Local file sizes helper
-const fileSizes = ref<{ x: string | null; y: string | null }>({ x: null, y: null });
-
-// Refs for hidden inputs
-const fileInputX = ref<HTMLInputElement | null>(null);
-const fileInputY = ref<HTMLInputElement | null>(null);
 
 // Inline edit state for snapshot labels
 const editingId = ref<string | null>(null);
@@ -62,102 +49,6 @@ watch(() => session.params, (newParams) => {
   }
 }, { deep: true });
 
-function formatBytes(bytes: number, decimals = 1) {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
-
-function formatFs(fs: number) {
-  if (fs >= 1000) return (fs / 1000).toFixed(1) + ' kHz';
-  return fs + ' Hz';
-}
-
-function truncateFilename(name: string, maxLen = 22) {
-  if (name.length <= maxLen) return name;
-  return name.slice(0, 11) + '...' + name.slice(-8);
-}
-
-function triggerFilePicker(slot: 'x' | 'y') {
-  const isLoading = slot === 'x' ? isLoadingX.value : isLoadingY.value;
-  if (isLoading) return;
-  if (slot === 'x') {
-    fileInputX.value?.click();
-  } else {
-    fileInputY.value?.click();
-  }
-}
-
-function onFileSelected(slot: 'x' | 'y', event: Event) {
-  const isLoading = slot === 'x' ? isLoadingX.value : isLoadingY.value;
-  if (isLoading) return;
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (file) {
-    handleFile(slot, file);
-  }
-  (event.target as HTMLInputElement).value = '';
-}
-
-function onFileDrop(slot: 'x' | 'y', event: DragEvent) {
-  const isLoading = slot === 'x' ? isLoadingX.value : isLoadingY.value;
-  if (isLoading) return;
-  const file = event.dataTransfer?.files?.[0];
-  if (file) {
-    handleFile(slot, file);
-  }
-}
-
-async function handleFile(slot: 'x' | 'y', file: File) {
-  const isLoading = slot === 'x' ? isLoadingX.value : isLoadingY.value;
-  if (isLoading) return;
-
-  if (slot === 'x') errorX.value = null;
-  else errorY.value = null;
-
-  if (file.size > 100 * 1024 * 1024) {
-    if (slot === 'x') errorX.value = 'El archivo excede el tamaño máximo de 100MB.';
-    else errorY.value = 'El archivo excede el tamaño máximo de 100MB.';
-    return;
-  }
-
-  if (!file.name.toLowerCase().endsWith('.wav')) {
-    if (slot === 'x') errorX.value = 'Solo archivos .wav';
-    else errorY.value = 'Solo archivos .wav';
-    return;
-  }
-
-  try {
-    if (slot === 'x') {
-      isLoadingX.value = true;
-      fileSizes.value.x = formatBytes(file.size);
-    } else {
-      isLoadingY.value = true;
-      fileSizes.value.y = formatBytes(file.size);
-    }
-    await session.loadSignal(slot, file);
-  } catch (e) {
-    if (slot === 'x') errorX.value = (e as Error).message;
-    else errorY.value = (e as Error).message;
-  } finally {
-    if (slot === 'x') isLoadingX.value = false;
-    else isLoadingY.value = false;
-  }
-}
-
-function clearSignalSlot(slot: 'x' | 'y') {
-  session.clearSignal(slot);
-  if (slot === 'x') {
-    fileSizes.value.x = null;
-    errorX.value = null;
-  } else {
-    fileSizes.value.y = null;
-    errorY.value = null;
-  }
-}
-
 function startEdit(s: any) {
   editingId.value = s.id;
   editingLabel.value = s.label;
@@ -192,140 +83,91 @@ function deleteSnapshot(id: string) {
     <!-- Header -->
     <div class="header">
       <div class="logo">
-        <IconWaveSine size="14" class="logo-icon" />
+        <img src="/path190.svg" alt="RoomWaves Icon" class="logo-img" />
       </div>
       <div>
-        <div class="title">DSP Analyzer</div>
+        <div class="title">DSP-LAB</div>
         <div class="version">v0.1.0</div>
       </div>
     </div>
 
     <!-- Sidebar content -->
     <div class="sidebar-content">
+      <!-- Back to selection screen button -->
+      <button class="back-home-btn" @click="appStore.setAppMode(null)">
+        <IconArrowLeft size="14" />
+        <span>Cambiar de Modo</span>
+      </button>
+
+      <!-- Mode indicator -->
+      <div class="mode-indicator">
+        <span class="mode-badge" :class="appStore.appMode">
+          {{ appStore.appMode === 'realtime' ? 'Tiempo Real' : (appStore.appMode === 'file' ? 'Archivos' : 'Herramientas') }}
+        </span>
+      </div>
+
       <!-- Session Error Banner -->
-      <div v-if="session.computeError" class="session-error-banner">
+      <div v-if="session.computeError && appStore.appMode !== 'tools'" class="session-error-banner">
         {{ session.computeError }}
       </div>
 
-      <!-- Section SEÑALES -->
-      <div class="section">
-        <p class="section-title">SEÑALES</p>
-        <div class="signals-container">
-          <!-- Referencia X Slot -->
-          <div
-            class="drop-zone"
-            :class="{ 'is-dragover': isDragoverX, 'is-loaded': session.x, 'is-loading': isLoadingX }"
-            @dragenter.prevent="isDragoverX = true"
-            @dragleave.prevent="isDragoverX = false"
-            @dragover.prevent
-            @drop.prevent="isDragoverX = false; onFileDrop('x', $event)"
-            @click="triggerFilePicker('x')"
-          >
-            <input
-              type="file"
-              ref="fileInputX"
-              style="display: none"
-              accept=".wav"
-              @change="onFileSelected('x', $event)"
-            />
-            <div v-if="isLoadingX" class="status-inner" @click.stop>
-              <span class="spinner"></span>
-              <span class="loading-text">Subiendo...</span>
+      <!-- SI EL MODO ES ARCHIVOS -->
+      <template v-if="appStore.appMode === 'file'">
+        <!-- Section PARÁMETROS -->
+        <div v-if="session.hasSignals" class="section">
+          <p class="section-title">PARÁMETROS</p>
+          <div class="params-section">
+            <div class="param-row">
+              <label for="fft-size-select">FFT Size</label>
+              <select id="fft-size-select" v-model.number="fftSize">
+                <option :value="1024">1024</option>
+                <option :value="2048">2048</option>
+                <option :value="4096">4096</option>
+                <option :value="8192">8192</option>
+              </select>
             </div>
-            <div v-else-if="session.x" class="loaded-inner">
-              <div class="file-name" :title="session.x.filename">{{ truncateFilename(session.x.filename) }}</div>
-              <div class="file-meta">
-                X (Ref) | {{ fileSizes.x || '—' }}
-              </div>
-              <div class="file-meta">
-                {{ formatFs(session.x.fs) }} | {{ session.x.duration.toFixed(1) }}s
-              </div>
-              <button class="clear-btn" @click.stop="clearSignalSlot('x')">✕</button>
+            <div class="param-row">
+              <label for="overlap-select">Overlap</label>
+              <select id="overlap-select" v-model.number="overlap">
+                <option :value="0.0">0%</option>
+                <option :value="0.25">25%</option>
+                <option :value="0.5">50%</option>
+                <option :value="0.75">75%</option>
+                <option :value="0.9">90%</option>
+              </select>
             </div>
-            <div v-else class="empty-inner">
-              <div class="empty-title">X (Referencia)</div>
-              <div class="empty-desc">Arrastrá .wav o hacé click</div>
-              <div v-if="errorX" class="error-inline">{{ errorX }}</div>
-            </div>
-          </div>
-
-          <!-- Medición Y Slot -->
-          <div
-            class="drop-zone"
-            :class="{ 'is-dragover': isDragoverY, 'is-loaded': session.y, 'is-loading': isLoadingY }"
-            @dragenter.prevent="isDragoverY = true"
-            @dragleave.prevent="isDragoverY = false"
-            @dragover.prevent
-            @drop.prevent="isDragoverY = false; onFileDrop('y', $event)"
-            @click="triggerFilePicker('y')"
-          >
-            <input
-              type="file"
-              ref="fileInputY"
-              style="display: none"
-              accept=".wav"
-              @change="onFileSelected('y', $event)"
-            />
-            <div v-if="isLoadingY" class="status-inner">
-              <span class="spinner"></span>
-              <span class="loading-text">Subiendo...</span>
-            </div>
-            <div v-else-if="session.y" class="loaded-inner">
-              <div class="file-name" :title="session.y.filename">{{ truncateFilename(session.y.filename) }}</div>
-              <div class="file-meta">
-                Y (Med) | {{ fileSizes.y || '—' }}
-              </div>
-              <div class="file-meta">
-                {{ formatFs(session.y.fs) }} | {{ session.y.duration.toFixed(1) }}s
-              </div>
-              <button class="clear-btn" @click.stop="clearSignalSlot('y')">✕</button>
-            </div>
-            <div v-else class="empty-inner">
-              <div class="empty-title">Y (Medición)</div>
-              <div class="empty-desc">Arrastrá .wav o hacé click</div>
-              <div v-if="errorY" class="error-inline">{{ errorY }}</div>
+            <div class="param-row">
+              <label for="window-select">Ventana</label>
+              <select id="window-select" v-model="windowType">
+                <option value="hann">Hann</option>
+                <option value="hamming">Hamming</option>
+                <option value="blackman">Blackman</option>
+                <option value="rectangular">Rectangular</option>
+              </select>
             </div>
           </div>
         </div>
-      </div>
+      </template>
 
-      <!-- Section PARÁMETROS -->
-      <div v-if="session.hasSignals" class="section">
-        <p class="section-title">PARÁMETROS</p>
-        <div class="params-section">
-          <div class="param-row">
-            <label for="fft-size-select">FFT Size</label>
-            <select id="fft-size-select" v-model.number="fftSize">
-              <option :value="1024">1024</option>
-              <option :value="2048">2048</option>
-              <option :value="4096">4096</option>
-              <option :value="8192">8192</option>
-            </select>
-          </div>
-          <div class="param-row">
-            <label for="overlap-select">Overlap</label>
-            <select id="overlap-select" v-model.number="overlap">
-              <option :value="0.0">0%</option>
-              <option :value="0.25">25%</option>
-              <option :value="0.5">50%</option>
-              <option :value="0.75">75%</option>
-              <option :value="0.9">90%</option>
-            </select>
-          </div>
-          <div class="param-row">
-            <label for="window-select">Ventana</label>
-            <select id="window-select" v-model="windowType">
-              <option value="hann">Hann</option>
-              <option value="hamming">Hamming</option>
-              <option value="blackman">Blackman</option>
-              <option value="rectangular">Rectangular</option>
-            </select>
+      <!-- SI EL MODO ES TIEMPO REAL -->
+      <template v-else-if="appStore.appMode === 'realtime'">
+        <div class="section">
+          <p class="section-title">ESTADO LIVE</p>
+          <div class="live-status-card" :class="{ active: audioStore.isStreaming }">
+            <div class="status-indicator">
+              <span class="status-dot"></span>
+              <span>{{ audioStore.isStreaming ? 'STREAMING EN VIVO' : 'ESPERANDO INICIO' }}</span>
+            </div>
+            <div class="live-meta-info" v-if="audioStore.isStreaming">
+              <div>Frecuencia: {{ audioStore.sampleRate / 1000 }} kHz</div>
+              <div>Buffer size: {{ audioStore.selectedBufferSize }} samples</div>
+            </div>
           </div>
         </div>
-      </div>
+      </template>
 
-      <!-- Section CAPTURAS -->
-      <div class="section">
+      <!-- Section CAPTURAS (visible en realtime y file, no en tools) -->
+      <div v-if="appStore.appMode !== 'tools'" class="section">
         <p class="section-title">CAPTURAS</p>
         <div v-if="session.snapshots.length === 0" class="empty-snapshots">
           (vacío — sin capturas aún)
@@ -369,11 +211,12 @@ function deleteSnapshot(id: string) {
 </template>
 
 <style scoped>
+/* DESIGN_GUIDE §1 — Core Visual Language: sidebar panel */
 .sidebar {
   width: 240px;
   min-width: 240px;
-  background: var(--color-bg-secondary);
-  border-right: 1px solid var(--color-border);
+  background: var(--surface-1);
+  border-right: 1px solid var(--border-ghost);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -381,7 +224,7 @@ function deleteSnapshot(id: string) {
 
 .header {
   padding: 16px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border-ghost);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -391,28 +234,35 @@ function deleteSnapshot(id: string) {
 .logo {
   width: 26px;
   height: 26px;
-  border-radius: 7px;
-  background: var(--color-accent-dim);
+  border-radius: var(--radius-sm);
+  background: var(--accent-lime-10);
+  border: 1px solid var(--border-default);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.logo-icon {
-  color: var(--color-accent);
+.logo-img {
+  width: 14px;
+  height: auto;
+
 }
 
+/* Varta 400, min 13px */
 .title {
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.2;
-  color: var(--color-text-primary);
+  color: var(--text-white);
+  letter-spacing: 0.02em;
 }
 
 .version {
+  font-family: var(--font-mono);
   font-size: 10px;
-  color: var(--color-text-secondary);
+  color: var(--text-gray);
 }
 
 .sidebar-content {
@@ -424,176 +274,57 @@ function deleteSnapshot(id: string) {
   gap: 20px;
 }
 
+/* Section label — Varta 300, small caps */
 .section-title {
+  font-family: var(--font-ui);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 300;
   text-transform: uppercase;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.08em;
+  color: var(--text-gray);
+  letter-spacing: 0.09em;
   margin-bottom: 8px;
 }
 
-.signals-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.drop-zone {
-  border: 1.5px dashed var(--color-border);
-  border-radius: var(--border-radius-md);
-  padding: 12px;
-  cursor: pointer;
-  background: var(--color-bg-primary);
-  transition: all 0.15s ease;
-  position: relative;
-  min-height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-}
-
-.drop-zone:hover {
-  border-color: var(--color-accent);
-  background: var(--color-bg-elevated);
-}
-
-.drop-zone.is-dragover {
-  border-color: var(--color-accent);
-  background: var(--color-accent-dim);
-}
-
-.drop-zone.is-loaded {
-  border-style: solid;
-  border-color: var(--color-border);
-  cursor: default;
-}
-
-.drop-zone.is-loaded:hover {
-  background: var(--color-bg-primary);
-}
-
-.empty-inner {
-  text-align: center;
-}
-
-.empty-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: 2px;
-}
-
-.empty-desc {
-  font-size: 10px;
-  color: var(--color-text-secondary);
-}
-
-.error-inline {
-  font-size: 9px;
-  color: #EF4444;
-  margin-top: 4px;
-}
-
-.loaded-inner {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding-right: 18px; /* space for clear button */
-}
-
-.file-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.file-meta {
-  font-size: 9px;
-  color: var(--color-text-secondary);
-  margin-top: 2px;
-}
-
-.clear-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: none;
-  border: none;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: 10px;
-  padding: 4px;
-  line-height: 1;
-}
-
-.clear-btn:hover {
-  color: #EF4444;
-}
-
-.spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 10px;
-  color: var(--color-text-secondary);
-  margin-left: 6px;
-}
-
-.status-inner {
-  display: flex;
-  align-items: center;
-}
-
+/* Elevated Tonal Card (DESIGN_GUIDE §6) */
 .params-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  padding: 10px;
+  background: var(--surface-0);
+  border: 1px solid var(--border-ghost);
+  border-radius: var(--radius-md);
+  padding: 12px;
 }
 
 .param-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
 }
 
+/* min 13px per DESIGN_GUIDE §2-B */
 .param-row label {
-  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-silver);
 }
 
+/* Utility control: select */
 .param-row select {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  border-radius: 4px;
-  padding: 2px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-white);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-family: var(--font-mono);
   font-size: 10px;
   outline: none;
   cursor: pointer;
 }
 
 .param-row select:focus {
-  border-color: var(--color-accent);
+  border-color: var(--border-bold);
 }
 
 .snapshots-list {
@@ -602,17 +333,22 @@ function deleteSnapshot(id: string) {
   gap: 6px;
 }
 
+/* Elevated Tonal Card item (DESIGN_GUIDE §6) */
 .snapshot-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px;
-  border-radius: var(--border-radius-md);
-  font-size: 12px;
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
+  padding: 7px 8px;
+  border-radius: var(--radius-md);
+  background: var(--surface-0);
+  border: 1px solid var(--border-ghost);
   position: relative;
   padding-right: 24px;
+  transition: border-color 0.1s var(--ease-material);
+}
+
+.snapshot-item:hover {
+  border-color: var(--border-default);
 }
 
 .dot-toggle {
@@ -622,8 +358,14 @@ function deleteSnapshot(id: string) {
   cursor: pointer;
   flex-shrink: 0;
   border: 1.5px solid currentColor;
+  transition: box-shadow 0.1s var(--ease-material);
 }
 
+.dot-toggle:hover {
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* min 13px per DESIGN_GUIDE §2-B */
 .snapshot-label {
   flex: 1;
   cursor: text;
@@ -631,17 +373,21 @@ function deleteSnapshot(id: string) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
-  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-white);
 }
 
 .edit-label-input {
   flex: 1;
-  font-size: 11px;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-accent);
-  color: var(--color-text-primary);
-  border-radius: 3px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
+  background: var(--surface-2);
+  border: 1px solid var(--accent-lime);
+  color: var(--text-white);
+  border-radius: var(--radius-sm);
   padding: 0 4px;
   outline: none;
 }
@@ -653,10 +399,12 @@ function deleteSnapshot(id: string) {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--color-text-secondary);
+  color: var(--text-gray);
   cursor: pointer;
   padding: 2px;
   line-height: 1;
+  font-size: 11px;
+  transition: color 0.1s var(--ease-material);
 }
 
 .snapshot-delete:hover {
@@ -664,32 +412,38 @@ function deleteSnapshot(id: string) {
 }
 
 .empty-snapshots {
-  font-size: 10px;
-  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-gray);
   font-style: italic;
   padding: 4px 0;
 }
 
 .footer {
   padding: 8px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border-ghost);
   flex-shrink: 0;
 }
 
+/* Tactile Nav Button (DESIGN_GUIDE §5) */
 .settings-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  font-size: 12px;
-  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-silver);
   padding: 8px;
-  border-radius: var(--border-radius-md);
+  border-radius: var(--radius-md);
+  transition: background 0.15s var(--ease-material), color 0.15s var(--ease-material);
 }
 
 .settings-btn:hover {
-  background: var(--color-bg-elevated);
-  color: var(--color-text-primary);
+  background: var(--surface-3);
+  color: var(--text-white);
 }
 
 .settings-content {
@@ -699,23 +453,27 @@ function deleteSnapshot(id: string) {
 }
 
 .chevron {
-  color: var(--color-text-secondary);
+  color: var(--text-gray);
 }
 
+/* Error banner — keep red but use surface tokens */
 .session-error-banner {
   padding: 8px 10px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 0.5px solid rgba(239, 68, 68, 0.4);
-  border-radius: var(--border-radius-md);
-  font-size: 11px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
   color: #EF4444;
-  line-height: 1.4;
+  line-height: 1.45;
   margin-bottom: 12px;
 }
 
+/* Snapshot transition */
 .snapshot-list-enter-active,
 .snapshot-list-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.25s var(--ease-direct);
 }
 .snapshot-list-enter-from {
   opacity: 0;
@@ -724,5 +482,133 @@ function deleteSnapshot(id: string) {
 .snapshot-list-leave-to {
   opacity: 0;
   transform: translateX(10px);
+}
+
+/* Utility Tonal Button (DESIGN_GUIDE §5) */
+.back-home-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-silver);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-material);
+  margin-bottom: 8px;
+}
+
+.back-home-btn:hover {
+  background: var(--surface-3);
+  border-color: var(--border-bold);
+  color: var(--text-white);
+}
+
+.back-home-btn:active {
+  transform: scale(0.98);
+}
+
+.mode-indicator {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+/* Mode pill badge — Tactile Nav Button style (DESIGN_GUIDE §5) */
+.mode-badge {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+}
+
+.mode-badge.realtime {
+  color: var(--accent-lime);
+  background: var(--accent-lime-10);
+  border-color: var(--border-bold);
+}
+
+.mode-badge.file {
+  color: var(--accent-peach);
+  background: rgba(224, 159, 103, 0.10);
+  border-color: rgba(224, 159, 103, 0.3);
+}
+
+.mode-badge.tools {
+  color: var(--accent-lime);
+  background: var(--accent-lime-05);
+  border-color: var(--border-default);
+}
+
+/* Live status card — Elevated Tonal (DESIGN_GUIDE §6) */
+.live-status-card {
+  background: var(--surface-0);
+  border: 1px solid var(--border-ghost);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.2s var(--ease-material);
+}
+
+.live-status-card.active {
+  border-color: var(--border-bold);
+  background: var(--accent-lime-05);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-gray);
+}
+
+.live-status-card.active .status-indicator {
+  color: var(--accent-lime);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-default);
+}
+
+.live-status-card.active .status-dot {
+  background: var(--accent-lime);
+  box-shadow: 0 0 6px var(--accent-lime);
+  animation: blink-dot 1.5s infinite alternate;
+}
+
+/* Live meta — JetBrains Mono for technical values (DESIGN_GUIDE §2-A) */
+.live-meta-info {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-gray);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+@keyframes blink-dot {
+  0%   { opacity: 0.4; }
+  100% { opacity: 1; }
 }
 </style>

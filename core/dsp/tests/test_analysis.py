@@ -1,13 +1,14 @@
 import numpy as np
-import pytest
+
 from core.dsp.analysis import (
     compute_fft,
     compute_frequency_response,
     compute_magnitude_db,
     compute_phase,
+    convolve_frequency,
     convolve_time,
-    convolve_frequency
 )
+
 
 class TestComputeFFT:
     def test_lengths_match(self):
@@ -98,6 +99,21 @@ class TestFrequencyResponse:
         freqs, H = compute_frequency_response(x, y, fs)
         assert freqs[0] == 0.0
         assert freqs[-1] <= fs / 2.0
+
+    def test_freq_response_numerical_stability(self):
+        fs = 1000
+        # Entrada cero
+        x = np.zeros(100)
+        y = np.random.randn(100)
+        freqs, H = compute_frequency_response(x, y, fs)
+        assert np.all(np.isfinite(H))
+        
+        # Entrada extremadamente pequeña (ej. 1e-25)
+        x_small = np.ones(100) * 1e-25
+        y_ones = np.ones(100)
+        freqs, H_small = compute_frequency_response(x_small, y_ones, fs)
+        assert np.all(np.isfinite(H_small))
+        assert np.max(np.abs(H_small)) <= 1e15
 
 
 class TestConvolveTime:

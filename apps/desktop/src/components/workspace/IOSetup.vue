@@ -6,7 +6,6 @@ import {
   IconPlayerPlay, 
   IconRefresh, 
   IconAlertTriangle, 
-  IconBinary, 
   IconSettings
 } from '@tabler/icons-vue';
 import type { ChannelRouting } from '../../types/audio';
@@ -153,74 +152,33 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Visual Routing Map (wow factor) -->
-        <div class="form-section">
-          <label class="section-title">Mapeo de Canales Lógicos (Doble Canal)</label>
-          
-          <div class="routing-visualizer">
-            <div class="visual-panel physical-inputs">
-              <div class="panel-header">Canales Físicos</div>
-              <div class="channels-list">
-                <div 
-                  v-for="ch in availableChannels" 
-                  :key="ch" 
-                  class="channel-node"
-                  :class="{ 
-                    active: channelXPhysical === ch || channelYPhysical === ch,
-                    'assigned-x': channelXPhysical === ch,
-                    'assigned-y': channelYPhysical === ch
-                  }"
-                >
-                  <IconBinary size="14" class="node-icon" />
-                  <span>Entrada {{ ch + 1 }}</span>
-                </div>
-              </div>
+        <!-- Mapeo de Canales Lógicos -->
+        <div class="form-row">
+          <div class="form-section flex-1">
+            <label class="section-title">Canal de Referencia (X)</label>
+            <div class="custom-select-wrapper select-x-wrapper">
+              <select v-model="channelXPhysical" class="sleek-select">
+                <option v-for="ch in availableChannels" :key="ch" :value="ch">
+                  Entrada {{ ch + 1 }}
+                </option>
+              </select>
             </div>
-
-            <div class="routing-arrows">
-              <div class="arrow-line line-x">
-                <div class="connector-dot"></div>
-                <div class="animated-pulse"></div>
-              </div>
-              <div class="arrow-line line-y">
-                <div class="connector-dot"></div>
-                <div class="animated-pulse"></div>
-              </div>
+            <div class="helper-info">
+              Canal para señal de loopback/referencia
             </div>
+          </div>
 
-            <div class="visual-panel logical-channels">
-              <div class="panel-header">Canales Lógicos</div>
-              <div class="logical-cards">
-                <!-- Canal X -->
-                <div class="logical-card card-x">
-                  <div class="card-meta">
-                    <span class="badge badge-x">Canal X</span>
-                    <span class="label">Referencia</span>
-                  </div>
-                  <div class="routing-select-container">
-                    <select v-model="channelXPhysical" class="tiny-select">
-                      <option v-for="ch in availableChannels" :key="ch" :value="ch">
-                        Entrada {{ ch + 1 }}
-                      </option>
-                    </select>
-                  </div>
-                </div>
-
-                <!-- Canal Y -->
-                <div class="logical-card card-y">
-                  <div class="card-meta">
-                    <span class="badge badge-y">Canal Y</span>
-                    <span class="label">Medición</span>
-                  </div>
-                  <div class="routing-select-container">
-                    <select v-model="channelYPhysical" class="tiny-select">
-                      <option v-for="ch in availableChannels" :key="ch" :value="ch">
-                        Entrada {{ ch + 1 }}
-                      </option>
-                    </select>
-                  </div>
-                </div>
-              </div>
+          <div class="form-section flex-1">
+            <label class="section-title">Canal de Medición (Y)</label>
+            <div class="custom-select-wrapper select-y-wrapper">
+              <select v-model="channelYPhysical" class="sleek-select">
+                <option v-for="ch in availableChannels" :key="ch" :value="ch">
+                  Entrada {{ ch + 1 }}
+                </option>
+              </select>
+            </div>
+            <div class="helper-info">
+              Canal para señal capturada/micrófono
             </div>
           </div>
         </div>
@@ -252,6 +210,19 @@ onMounted(() => {
           <IconPlayerPlay v-else size="18" />
           <span>{{ isLoading ? 'Inicializando Motor...' : 'Iniciar Motor DSP' }}</span>
         </button>
+
+        <!-- Simulation Option -->
+        <div class="simulation-section">
+          <div class="divider-text">o bien</div>
+          <button 
+            @click="audioStore.startSimulation()" 
+            class="btn-start-simulation"
+            type="button"
+          >
+            <IconPlayerPlay size="16" />
+            <span>Simular Entrada (Demo sin hardware)</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -401,202 +372,15 @@ onMounted(() => {
   color: var(--color-accent);
 }
 
-/* Routing Visualizer */
-.routing-visualizer {
-  display: grid;
-  grid-template-columns: 140px 1fr 180px;
-  align-items: center;
-  background: rgba(12, 14, 18, 0.8);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  padding: 16px;
-  min-height: 140px;
-}
-
-.visual-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.panel-header {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-text-secondary);
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-  letter-spacing: 0.5px;
-}
-
-.channels-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.channel-node {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--color-border);
-  background: rgba(24, 28, 36, 0.4);
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  transition: all 0.2s ease;
-}
-
-.channel-node.assigned-x {
-  border-color: rgba(0, 217, 126, 0.4);
-  background: rgba(0, 217, 126, 0.05);
-  color: var(--color-accent);
-}
-
-.channel-node.assigned-y {
-  border-color: rgba(99, 102, 241, 0.4);
-  background: rgba(99, 102, 241, 0.05);
-  color: #818cf8;
-}
-
-.node-icon {
-  opacity: 0.6;
-}
-
-.routing-arrows {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 0 10px;
-  position: relative;
-}
-
-.arrow-line {
-  height: 2px;
-  background: linear-gradient(to right, var(--color-border), rgba(255,255,255,0.05));
-  position: relative;
-}
-
-.line-x {
-  background: linear-gradient(to right, rgba(0, 217, 126, 0.5), rgba(0, 217, 126, 0.1));
-}
-
-.line-y {
-  background: linear-gradient(to right, rgba(99, 102, 241, 0.5), rgba(99, 102, 241, 0.1));
-}
-
-.connector-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  position: absolute;
-  left: -2px;
-  top: -2px;
-}
-
-.line-x .connector-dot {
-  background: var(--color-accent);
-  box-shadow: 0 0 8px var(--color-accent);
-}
-
-.line-y .connector-dot {
-  background: #818cf8;
-  box-shadow: 0 0 8px #818cf8;
-}
-
-.animated-pulse {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to right, transparent, var(--color-accent), transparent);
-  animation: pulse-flow 2s infinite linear;
-  opacity: 0.7;
-}
-
-.line-y .animated-pulse {
-  background: linear-gradient(to right, transparent, #818cf8, transparent);
-}
-
-.logical-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.logical-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--color-border);
-  background: rgba(24, 28, 36, 0.6);
-  gap: 10px;
-}
-
-.card-x {
-  border-color: rgba(0, 217, 126, 0.2);
-}
-
-.card-y {
-  border-color: rgba(99, 102, 241, 0.2);
-}
-
-.card-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.badge {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 4px;
-  width: fit-content;
-}
-
-.badge-x {
-  background: var(--color-accent-dim);
-  color: var(--color-accent);
-  border: 0.5px solid rgba(0, 217, 126, 0.3);
-}
-
-.badge-y {
-  background: rgba(99, 102, 241, 0.12);
-  color: #818cf8;
-  border: 0.5px solid rgba(99, 102, 241, 0.3);
-}
-
-.label {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.routing-select-container {
-  width: 90px;
-}
-
-.tiny-select {
-  width: 100%;
-  padding: 4px 8px;
-  background: rgba(10, 11, 13, 0.8);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  color: var(--color-text-primary);
-  font-size: 11px;
-  outline: none;
-  cursor: pointer;
-}
-
-.tiny-select:focus {
+/* Color accents for channel selectors */
+.select-x-wrapper select:focus {
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-dim);
+}
+
+.select-y-wrapper select:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 /* Alerts */
@@ -695,5 +479,63 @@ onMounted(() => {
 @keyframes pulse-flow {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+.simulation-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.divider-text {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.divider-text::before,
+.divider-text::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+  margin: 0 10px;
+}
+
+.btn-start-simulation {
+  width: 100%;
+  padding: 12px 24px;
+  background: rgba(129, 140, 248, 0.08);
+  border: 1px dashed rgba(129, 140, 248, 0.3);
+  border-radius: var(--border-radius-md);
+  color: #a5b4fc;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-start-simulation:hover {
+  background: rgba(129, 140, 248, 0.16);
+  border-color: #818cf8;
+  color: #c7d2fe;
+  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.1);
+}
+
+.btn-start-simulation:active {
+  transform: scale(0.99);
 }
 </style>

@@ -2,11 +2,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+
 from core.dsp.plots import (
+    plot_coherence,
+    plot_frequency_response,
     plot_signal,
     plot_spectrum,
-    plot_frequency_response,
-    plot_coherence
 )
 
 # Configuramos matplotlib para que no intente abrir ventanas durante los tests

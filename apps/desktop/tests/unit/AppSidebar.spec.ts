@@ -10,63 +10,43 @@ vi.mock('vue-i18n', () => ({
   })
 }));
 
-vi.mock('../../src/stores/useAppStore', () => ({
-  useAppStore: () => ({
-    toggleSettings: vi.fn(),
-  })
-}));
+const mockAppStore = {
+  toggleSettings: vi.fn(),
+  appMode: 'file',
+  setAppMode: vi.fn()
+};
 
-vi.mock('../../src/services/api', () => ({
-  api: {
-    uploadAudio: vi.fn(),
-    fft: vi.fn(),
-    frequencyResponse: vi.fn(),
-    coherence: vi.fn(),
-  }
+vi.mock('../../src/stores/useAppStore', () => ({
+  useAppStore: () => mockAppStore
 }));
 
 describe('AppSidebar.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    mockAppStore.appMode = 'file';
   });
 
-  it('debería renderizar las dos drop zones para X e Y', () => {
+  it('debería renderizar el botón de cambiar de modo y de configuración', () => {
     const wrapper = mount(AppSidebar);
-    const dropZones = wrapper.findAll('.drop-zone');
-    expect(dropZones.length).toBe(2);
-    expect(dropZones[0].text()).toContain('X (Referencia)');
-    expect(dropZones[1].text()).toContain('Y (Medición)');
+    expect(wrapper.text()).toContain('Cambiar de Modo');
+    expect(wrapper.text()).toContain('sidebar.settings');
   });
 
-  it('debería mostrar error si el archivo es mayor a 100MB y no intentar cargarlo en el store', async () => {
+  it('debería renderizar la etiqueta del modo actual', () => {
     const wrapper = mount(AppSidebar);
+    expect(wrapper.find('.mode-badge').text()).toBe('Archivos');
+  });
+
+  it('debería renderizar el panel de parámetros si hay señales cargadas', async () => {
     const session = useMeasurementSession();
-    const loadSpy = vi.spyOn(session, 'loadSignal');
-
-    // Simular el drop de un archivo > 100MB
-    const bigFile = new File(['a'.repeat(101 * 1024 * 1024)], 'too_big.wav', { type: 'audio/wav' });
-    const dropZone = wrapper.find('.drop-zone');
+    // Forzar que tenga señales
+    session.x = { filename: 'x.wav', path: '', fs: 44100, duration: 1, samples: [0] };
+    session.y = { filename: 'y.wav', path: '', fs: 44100, duration: 1, samples: [0] };
     
-    // Obtener la instancia del componente para llamar directamente a handleFile
-    const vm = wrapper.vm as any;
-    await vm.handleFile('x', bigFile);
-
-    expect(loadSpy).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain('excede el tamaño máximo de 100MB');
-  });
-
-  it('debería mostrar error si el archivo no es .wav y no intentar cargarlo', async () => {
     const wrapper = mount(AppSidebar);
-    const session = useMeasurementSession();
-    const loadSpy = vi.spyOn(session, 'loadSignal');
-
-    const badFile = new File(['samples'], 'test.mp3', { type: 'audio/mp3' });
-    const vm = wrapper.vm as any;
-    await vm.handleFile('x', badFile);
-
-    expect(loadSpy).not.toHaveBeenCalled();
-    expect(wrapper.text()).toContain('Solo archivos .wav');
+    expect(wrapper.text()).toContain('PARÁMETROS');
+    expect(wrapper.find('#fft-size-select').exists()).toBe(true);
   });
 
   it('debería renderizar la lista de capturas si existen snapshots', async () => {

@@ -109,26 +109,28 @@ function close() {
       <div class="divider"></div>
       
       <div class="footer-info">
-        dsp-analyzer · v0.1.0-dev · <a href="https://github.com/Roomwaves/dsp-lab" target="_blank" class="link">GitHub</a>
+        DSP-LAB · v0.1.0-dev · <a href="https://github.com/Roomwaves/dsp-lab" target="_blank" class="link">GitHub</a>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* DESIGN_GUIDE §6 — Flat Architectural Glass panel for settings drawer */
 .settings-panel {
   position: absolute;
   right: 0;
   top: 0;
   height: 100%;
   width: 272px;
-  background: var(--color-bg-elevated);
-  border-left: 1px solid var(--color-border);
+  background: var(--surface-2);
+  border-left: 1px solid var(--border-ghost);
   display: flex;
   flex-direction: column;
   z-index: 10;
   transform: translateX(100%);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Direct Ease for drawers (DESIGN_GUIDE §7) */
+  transition: transform 0.3s var(--ease-direct);
 }
 
 .settings-panel.open {
@@ -137,7 +139,7 @@ function close() {
 
 .header {
   padding: 13px 16px;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 1px solid var(--border-ghost);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -148,11 +150,15 @@ function close() {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--text-silver);
 }
 
+/* Varta 400, min 13px (DESIGN_GUIDE §2) */
 .title {
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
+  color: var(--text-white);
 }
 
 .close-btn {
@@ -160,11 +166,18 @@ function close() {
   border: none;
   cursor: pointer;
   padding: 4px;
-  color: var(--color-text-secondary);
+  color: var(--text-gray);
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s var(--ease-material), background 0.15s var(--ease-material);
+}
+
+.close-btn:hover {
+  color: var(--text-white);
+  background: var(--surface-3);
 }
 
 .content {
@@ -173,12 +186,14 @@ function close() {
   overflow-y: auto;
 }
 
+/* Section label — Varta 300, small caps */
 .section-label {
+  font-family: var(--font-ui);
   font-size: 10px;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.07em;
+  font-weight: 300;
+  color: var(--text-gray);
+  letter-spacing: 0.09em;
   margin: 0 0 11px;
-  font-weight: 500;
   text-transform: uppercase;
 }
 
@@ -187,7 +202,7 @@ function close() {
   align-items: center;
   justify-content: space-between;
   padding: 11px 0;
-  border-bottom: 0.5px solid var(--color-border);
+  border-bottom: 1px solid var(--border-ghost);
 }
 
 .s-row:last-of-type {
@@ -198,21 +213,27 @@ function close() {
   display: flex;
   flex-direction: column;
   padding: 11px 0;
-  border-bottom: 0.5px solid var(--color-border);
+  border-bottom: 1px solid var(--border-ghost);
 }
 
 .s-row-col:last-of-type {
   border-bottom: none;
 }
 
+/* min 13px per DESIGN_GUIDE §2-B */
 .row-title {
+  font-family: var(--font-ui);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
+  color: var(--text-white);
 }
 
 .row-sub {
-  font-size: 11px;
-  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-gray);
+  margin-top: 2px;
 }
 
 .btn-group {
@@ -220,59 +241,89 @@ function close() {
   gap: 4px;
 }
 
+/* Utility Tonal Button (DESIGN_GUIDE §5) */
 .opt-btn {
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-  border-radius: var(--border-radius-sm);
-  padding: 4px 8px;
-  font-size: 11px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  color: var(--text-silver);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
   cursor: pointer;
+  transition: all 0.15s var(--ease-material);
+}
+
+.opt-btn:hover:not(.active) {
+  background: var(--surface-4);
+  border-color: var(--border-bold);
+  color: var(--text-white);
 }
 
 .opt-btn.active {
-  background: var(--color-accent-dim);
-  color: var(--color-accent);
-  border-color: transparent;
+  background: var(--accent-lime-10);
+  color: var(--accent-lime);
+  border-color: var(--border-bold);
 }
 
+/* Utility control: select */
 .custom-select {
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  border-radius: var(--border-radius-sm);
-  padding: 6px;
-  font-size: 12px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  color: var(--text-white);
+  border-radius: var(--radius-sm);
+  padding: 7px 8px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
   width: 100%;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s var(--ease-material);
+}
+
+.custom-select:focus {
+  border-color: var(--border-bold);
 }
 
 .mt-1 {
   margin-top: 8px;
 }
 
+/* JetBrains Mono for metric values (DESIGN_GUIDE §2-A) */
 .latency-estimate {
-  font-size: 11px;
-  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-gray);
 }
 
 .divider {
   height: 1px;
-  background: var(--color-border);
+  background: var(--border-ghost);
   margin: 14px 0;
 }
 
 .chevron {
-  color: var(--color-text-secondary);
+  color: var(--text-gray);
 }
 
 .footer-info {
-  font-size: 11px;
-  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-gray);
   text-align: center;
 }
 
 .link {
-  color: var(--color-text-info);
+  color: var(--accent-lime);
   text-decoration: none;
+  transition: color 0.15s var(--ease-material);
+}
+
+.link:hover {
+  color: var(--accent-lime-pressed);
 }
 </style>

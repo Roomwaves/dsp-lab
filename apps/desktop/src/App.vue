@@ -9,16 +9,19 @@ import AppShell from './components/layout/AppShell.vue';
 <style>
 @import './assets/base.css';
 
-/* Global resets and utilities if any */
+/* Global placeholder helpers */
 .placeholder {
   text-align: center;
-  color: var(--color-text-secondary);
+  color: var(--text-silver);
   font-family: var(--font-mono);
+  font-size: 13px;
 }
 
 .placeholder-sub {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-gray);
   margin-top: 8px;
 }
 </style>
