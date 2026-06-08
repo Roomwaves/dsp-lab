@@ -160,6 +160,11 @@ impl StreamManager {
 
         self.state = StreamState::Starting;
 
+        if config.device_id == "virtual-simulator" {
+            self.start_simulator_stream(config, routing, app)?;
+            return Ok(());
+        }
+
         // --- Localizar el dispositivo por su id estable ---
         let host = cpal::default_host();
 
@@ -233,6 +238,114 @@ impl StreamManager {
         );
 
         self._stream = Some(stream);
+        self.processing_thread = Some(handle);
+        self.processing_stop = Some(stop_flag);
+        self.last_config = Some(config.clone());
+        self.state = StreamState::Running(config);
+
+        Ok(())
+    }
+
+    /// Genera una señal simulada en tiempo real (X=Referencia, Y=Medición filtrada y retrasada)
+    /// para permitir pruebas del motor DSP sin poseer una placa física.
+    fn start_simulator_stream<R: tauri::Runtime + 'static>(
+        &mut self,
+        config: AudioStreamConfig,
+        routing: std::sync::Arc<std::sync::RwLock<super::channel_routing::ChannelRouting>>,
+        app: tauri::AppHandle<R>,
+    ) -> Result<(), AudioError> {
+        // --- Crear ring buffer lock-free ---
+        let (mut producer, consumer) = HeapRb::<f32>::new(RING_BUFFER_CAPACITY).split();
+
+        let channels = config.channels;
+        let sample_rate = config.sample_rate;
+        let buffer_size = config.buffer_size;
+
+        // --- Iniciar processing thread ---
+        let receiver = super::pipeline::AudioBlockReceiver::new(
+            consumer,
+            buffer_size as usize,
+            channels,
+            sample_rate,
+        );
+
+        let stop_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let stop_flag_sim = std::sync::Arc::clone(&stop_flag);
+
+        // Linear Congruential Generator inline
+        struct Lcg {
+            state: u32,
+        }
+        impl Lcg {
+            fn new(seed: u32) -> Self {
+                Self { state: seed }
+            }
+            fn next_f32(&mut self) -> f32 {
+                self.state = self.state.wrapping_mul(1103515245).wrapping_add(12345);
+                self.state &= 0x7fffffff;
+                (self.state as f32 / 2147483647.0) * 2.0 - 1.0
+            }
+        }
+
+        // Lanzar thread de simulación
+        std::thread::spawn(move || {
+            let mut lcg = Lcg::new(12345);
+            let mut counter: u64 = 0;
+            let mut y_lp = 0.0f32;
+            let mut delay_buf = vec![0.0f32; 32];
+            let mut delay_idx = 0;
+
+            let block_duration_us = (buffer_size as f64 / sample_rate as f64 * 1_000_000.0) as u64;
+            let sleep_duration = std::time::Duration::from_micros(block_duration_us);
+
+            while !stop_flag_sim.load(std::sync::atomic::Ordering::Relaxed) {
+                let start_time = std::time::Instant::now();
+                let mut block_samples = Vec::with_capacity(buffer_size as usize * channels as usize);
+
+                for _ in 0..buffer_size {
+                    // Tono de 1 kHz + Ruido blanco
+                    let noise = lcg.next_f32() * 0.25;
+                    let angle = 2.0 * std::f32::consts::PI * 1000.0 * (counter as f32) / sample_rate as f32;
+                    let tone = angle.sin() * 0.15;
+                    let x = noise + tone;
+
+                    // Delay de 32 muestras (~0.67 ms)
+                    let delayed_x = delay_buf[delay_idx];
+                    delay_buf[delay_idx] = x;
+                    delay_idx = (delay_idx + 1) % 32;
+
+                    // Filtro pasa-bajos
+                    y_lp = y_lp * 0.85 + delayed_x * 0.15;
+
+                    // Ruido de sala adicional
+                    let room_noise = lcg.next_f32() * 0.03;
+                    let y = y_lp + room_noise;
+
+                    if channels >= 2 {
+                        block_samples.push(x);
+                        block_samples.push(y);
+                    } else {
+                        block_samples.push(x);
+                    }
+                    counter = counter.wrapping_add(1);
+                }
+
+                let _ = producer.push_slice(&block_samples);
+
+                let elapsed = start_time.elapsed();
+                if let Some(remaining) = sleep_duration.checked_sub(elapsed) {
+                    std::thread::sleep(remaining);
+                }
+            }
+        });
+
+        let handle = super::pipeline::spawn_processing_thread(
+            receiver,
+            app,
+            routing,
+            std::sync::Arc::clone(&stop_flag),
+        );
+
         self.processing_thread = Some(handle);
         self.processing_stop = Some(stop_flag);
         self.last_config = Some(config.clone());
