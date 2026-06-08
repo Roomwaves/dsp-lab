@@ -12,6 +12,11 @@ export const useAppStore = defineStore('app', () => {
 
   const activeTool = ref<ToolId>('rta')
   const isSettingsOpen = ref(false)
+  const appMode = ref<'realtime' | 'file' | 'tools' | null>(null)
+
+  function setAppMode(mode: 'realtime' | 'file' | 'tools' | null) {
+    appMode.value = mode
+  }
 
   // Initialize panel visibility from localStorage
   const savedVisibility = localStorage.getItem('panel-visibility')
@@ -99,6 +104,7 @@ export const useAppStore = defineStore('app', () => {
     panelVisibility,
     isToolsDrawerOpen,
     activeToolsDrawerTab,
+    appMode,
     setActiveTool,
     toggleSettings,
     togglePanelVisibility,
@@ -106,6 +112,7 @@ export const useAppStore = defineStore('app', () => {
     setToolsDrawerOpen,
     setActiveToolsDrawerTab,
     setTheme,
-    setLanguage
+    setLanguage,
+    setAppMode
   }
 })

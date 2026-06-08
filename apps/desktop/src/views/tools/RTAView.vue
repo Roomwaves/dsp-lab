@@ -92,6 +92,16 @@ watch(() => audioStore.fftSize, () => {
           {{ t('controls.start') }}
         </button>
         <button
+          v-if="!audioStore.isStreaming"
+          id="rta-sim-btn"
+          class="btn btn-sim"
+          @click="audioStore.startSimulation()"
+          title="Simular espectro sin usar hardware"
+        >
+          <IconPlayerPlay size="14" />
+          <span>Simular</span>
+        </button>
+        <button
           id="rta-stop-btn"
           class="btn btn-secondary"
           :disabled="!audioStore.isStreaming"
@@ -307,5 +317,17 @@ watch(() => audioStore.fftSize, () => {
   font-size: 11px;
   padding: 4px 8px;
   cursor: pointer;
+}
+
+.btn-sim {
+  background: rgba(129, 140, 248, 0.1);
+  color: #a5b4fc;
+  border: 0.5px dashed rgba(129, 140, 248, 0.4);
+}
+
+.btn-sim:hover {
+  background: rgba(129, 140, 248, 0.18);
+  border-color: #818cf8;
+  color: #c7d2fe;
 }
 </style>

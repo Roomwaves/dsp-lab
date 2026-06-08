@@ -8,6 +8,7 @@ const routes = [
   { path: '/coherence',         name: 'coherence',         component: () => import('../views/tools/CoherenceView.vue') },
   { path: '/filter-designer',   name: 'filter-designer',   component: () => import('../views/tools/FilterDesignerView.vue') },
   { path: '/signal-generator',  name: 'signal-generator',  component: () => import('../views/tools/SignalGeneratorView.vue') },
+  { path: '/download',          name: 'download',          component: () => import('../views/DownloadView.vue') },
 ]
 
 const router = createRouter({

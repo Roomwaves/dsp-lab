@@ -1,32 +1,49 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useMeasurementSession } from '../../../stores/useMeasurementSession';
+import { useAudioStore } from '../../../stores/useAudioStore';
+import { useAppStore } from '../../../stores/useAppStore';
 import SpectrumPlot from '../../plots/SpectrumPlot.vue';
 
 const session = useMeasurementSession();
+const audioStore = useAudioStore();
+const appStore = useAppStore();
 
 const traces = computed(() => {
   const list = [];
-  if (session.liveResult && session.liveResult.frequencies && session.liveResult.frequencies.length > 0) {
-    if (session.liveResult.spectrum_x) {
+  
+  if (appStore.appMode === 'realtime') {
+    if (audioStore.fftResult && audioStore.fftResult.frequencies && audioStore.fftResult.frequencies.length > 0) {
       list.push({
-        frequencies: session.liveResult.frequencies,
-        magnitudes: session.liveResult.spectrum_x,
+        frequencies: audioStore.fftResult.frequencies,
+        magnitudes: audioStore.fftResult.magnitudes_db,
         color: '#00D97E',
-        label: 'Referencia (X)'
+        label: 'Espectro en Vivo (X)'
       });
     }
-    if (session.liveResult.spectrum_y) {
-      list.push({
-        frequencies: session.liveResult.frequencies,
-        magnitudes: session.liveResult.spectrum_y,
-        color: '#3B82F6',
-        label: 'Medición (Y)'
-      });
+  } else {
+    // Modo Archivo
+    if (session.liveResult && session.liveResult.frequencies && session.liveResult.frequencies.length > 0) {
+      if (session.liveResult.spectrum_x) {
+        list.push({
+          frequencies: session.liveResult.frequencies,
+          magnitudes: session.liveResult.spectrum_x,
+          color: '#00D97E',
+          label: 'Referencia (X)'
+        });
+      }
+      if (session.liveResult.spectrum_y) {
+        list.push({
+          frequencies: session.liveResult.frequencies,
+          magnitudes: session.liveResult.spectrum_y,
+          color: '#3B82F6',
+          label: 'Medición (Y)'
+        });
+      }
     }
   }
   
-  // Snapshots can also be superimposed
+  // Las capturas (snapshots) se superponen en ambos modos si están visibles
   for (const s of session.visibleSnapshots) {
     if (s.data && s.data.frequencies && s.data.frequencies.length > 0) {
       if (s.data.spectrum_x) {
@@ -53,22 +70,44 @@ const traces = computed(() => {
 
 <template>
   <div class="panel-inner">
-    <div v-if="!session.hasLiveResult" class="empty-state">
-      <div class="placeholder">Cargá señales X e Y para</div>
-      <div class="placeholder-sub">ver el espectro RTA.</div>
-    </div>
-    <div v-else class="plot-container">
-      <div class="legend">
-        <div class="legend-item"><span class="legend-dot ref"></span>Referencia (X)</div>
-        <div class="legend-item"><span class="legend-dot meas"></span>Medición (Y)</div>
+    <!-- MODO TIEMPO REAL -->
+    <template v-if="appStore.appMode === 'realtime'">
+      <div v-if="!audioStore.isStreaming" class="empty-state">
+        <div class="placeholder">Motor DSP inactivo</div>
+        <div class="placeholder-sub">Iniciá el motor DSP desde la configuración para ver el espectro en tiempo real.</div>
       </div>
-      <SpectrumPlot
-        :db-scale="true"
-        :log-frequency="true"
-        :traces="traces"
-        :height="200"
-      />
-    </div>
+      <div v-else class="plot-container">
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot ref"></span>Espectro en Vivo (X)</div>
+        </div>
+        <SpectrumPlot
+          :db-scale="true"
+          :log-frequency="true"
+          :traces="traces"
+          :height="200"
+        />
+      </div>
+    </template>
+
+    <!-- MODO CARGA DE ARCHIVOS -->
+    <template v-else>
+      <div v-if="!session.hasLiveResult" class="empty-state">
+        <div class="placeholder">Cargá señales X e Y para</div>
+        <div class="placeholder-sub">ver el espectro RTA.</div>
+      </div>
+      <div v-else class="plot-container">
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot ref"></span>Referencia (X)</div>
+          <div class="legend-item"><span class="legend-dot meas"></span>Medición (Y)</div>
+        </div>
+        <SpectrumPlot
+          :db-scale="true"
+          :log-frequency="true"
+          :traces="traces"
+          :height="200"
+        />
+      </div>
+    </template>
   </div>
 </template>
 

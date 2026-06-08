@@ -6,7 +6,7 @@ import {
   IconActivity, 
   IconFileMusic, 
   IconChevronRight,
-  IconWaveSine
+  IconWaveSine,
 } from '@tabler/icons-vue';
 import AppSidebar from './AppSidebar.vue';
 import AppTopBar from './AppTopBar.vue';
@@ -205,6 +205,9 @@ onMounted(() => {
   line-height: 1.65;
   margin: 0;
 }
+
+/* ── Download row ──────────────────────────────────────────── */
+
 
 /* ── Mode cards grid ───────────────────────────────────────── */
 .mode-cards {

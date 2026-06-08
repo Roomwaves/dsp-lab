@@ -5,7 +5,10 @@ import { api } from '../../../services/api';
 import WaveformPlot from '../../plots/WaveformPlot.vue';
 import SpectrumPlot from '../../plots/SpectrumPlot.vue';
 
-// Tone entries
+// Signal type: 'sine' | 'square' | 'triangle' | 'white-noise' | 'pink-noise' | 'sweep'
+const signalType = ref('sine');
+
+// Tone entries for multi-tone (sine mode)
 interface ToneEntry {
   frequency: number;
   amplitude: number;
@@ -15,6 +18,16 @@ const tones = ref<ToneEntry[]>([
   { frequency: 440, amplitude: 1.0 },
 ]);
 
+// Single wave / noise parameters
+const frequency = ref(440);
+const amplitude = ref(0.8);
+
+// Sweep parameters
+const fStart = ref(20);
+const fEnd = ref(20000);
+const sweepType = ref('linear'); // 'linear' | 'logarithmic'
+
+// Global Settings
 const fs = ref(44100);
 const duration = ref(1.0);
 const snrDb = ref(20);
@@ -41,20 +54,35 @@ function removeTone(i: number) {
 }
 
 async function generate() {
-  if (tones.value.length === 0) return;
   isLoading.value = true;
   error.value = null;
   try {
-    const freqs = tones.value.map(t => t.frequency);
-    const amps = tones.value.map(t => t.amplitude);
+    const params: any = {
+      signalType: signalType.value,
+      fs: fs.value,
+      duration: duration.value,
+      amplitude: amplitude.value,
+      applyNoise: applyNoise.value,
+      snrDb: snrDb.value,
+    };
 
-    let result = await api.generatePureTones(freqs, amps, fs.value, duration.value);
-    samples.value = result.samples;
-
-    if (applyNoise.value) {
-      result = await api.addWhiteNoise(result.samples, fs.value, snrDb.value);
-      samples.value = result.samples;
+    if (signalType.value === 'sine') {
+      params.frequencies = tones.value.map(t => t.frequency);
+      params.amplitudes = tones.value.map(t => t.amplitude);
+    } else if (signalType.value === 'square' || signalType.value === 'triangle') {
+      params.frequency = frequency.value;
+      params.amplitude = amplitude.value;
+    } else if (signalType.value === 'white-noise' || signalType.value === 'pink-noise') {
+      params.amplitude = amplitude.value;
+    } else if (signalType.value === 'sweep') {
+      params.fStart = fStart.value;
+      params.fEnd = fEnd.value;
+      params.sweepType = sweepType.value;
+      params.amplitude = amplitude.value;
     }
+
+    const result = await api.generateSignal(params);
+    samples.value = result.samples;
 
     // Compute FFT for spectrum
     const fftResult = await api.fft(samples.value, fs.value);
@@ -81,48 +109,174 @@ async function exportWav() {
   <div class="sg-panel">
     <!-- Inputs section -->
     <div class="inputs-section">
-      <!-- Tones table -->
+      <!-- Dynamic Parameters Panel -->
       <div class="tones-panel">
         <div class="panel-header">
-          <span class="panel-title">Tonos</span>
-          <button class="icon-btn" title="Agregar tono" @click="addTone">
-            <IconPlus size="13" />
-          </button>
-        </div>
-        <div class="tones-table">
-          <div class="table-head">
-            <span>Freq (Hz)</span>
-            <span>Amplitud</span>
-            <span></span>
+          <span class="panel-title">Tipo de Señal</span>
+          <!-- Signal Type Dropdown -->
+          <div class="type-selector-wrapper">
+            <select id="sg-type-select" v-model="signalType" class="select-ctrl select-type">
+              <option value="sine">Seno / Multi-tono</option>
+              <option value="square">Onda Cuadrada</option>
+              <option value="triangle">Onda Triangular</option>
+              <option value="white-noise">Ruido Blanco</option>
+              <option value="pink-noise">Ruido Rosa</option>
+              <option value="sweep">Barrido (Sweep)</option>
+            </select>
           </div>
-          <div
-            v-for="(tone, i) in tones"
-            :key="i"
-            class="table-row"
-          >
+        </div>
+
+        <!-- SINE / MULTI-TONE PARAMETERS -->
+        <div v-if="signalType === 'sine'" class="signal-config-container">
+          <div class="tones-table-header">
+            <span class="section-subtitle">Tonos puros a sumar:</span>
+            <button class="icon-btn" title="Agregar tono" @click="addTone">
+              <IconPlus size="13" />
+            </button>
+          </div>
+          <div class="tones-table">
+            <div class="table-head">
+              <span>Freq (Hz)</span>
+              <span>Amplitud</span>
+              <span></span>
+            </div>
+            <div
+              v-for="(tone, i) in tones"
+              :key="i"
+              class="table-row"
+            >
+              <input
+                :id="`sg-freq-${i}`"
+                v-model.number="tone.frequency"
+                type="number"
+                min="1"
+                :max="fs / 2"
+                step="1"
+                class="num-input"
+                placeholder="440"
+              />
+              <input
+                :id="`sg-amp-${i}`"
+                v-model.number="tone.amplitude"
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                class="num-input"
+                placeholder="1.0"
+              />
+              <button class="icon-btn danger" :disabled="tones.length === 1" @click="removeTone(i)">
+                <IconTrash size="12" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SQUARE / TRIANGLE WAVE PARAMETERS -->
+        <div v-else-if="signalType === 'square' || signalType === 'triangle'" class="signal-config-container grid-params">
+          <div class="param-row">
+            <div class="param-info">
+              <label for="sg-freq-single" class="param-label">Frecuencia (Hz)</label>
+              <input id="sg-freq-single" v-model.number="frequency" type="number" min="1" :max="fs / 2" class="num-input-small" />
+            </div>
             <input
-              :id="`sg-freq-${i}`"
-              v-model.number="tone.frequency"
-              type="number"
-              min="1"
+              v-model.number="frequency"
+              type="range"
+              min="20"
               :max="fs / 2"
               step="1"
-              class="num-input"
-              placeholder="440"
+              class="slider-param"
             />
+          </div>
+          <div class="param-row">
+            <div class="param-info">
+              <label for="sg-amp-single" class="param-label">Amplitud</label>
+              <input id="sg-amp-single" v-model.number="amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
+            </div>
             <input
-              :id="`sg-amp-${i}`"
-              v-model.number="tone.amplitude"
-              type="number"
+              v-model.number="amplitude"
+              type="range"
               min="0"
               max="1"
               step="0.01"
-              class="num-input"
-              placeholder="1.0"
+              class="slider-param"
             />
-            <button class="icon-btn danger" :disabled="tones.length === 1" @click="removeTone(i)">
-              <IconTrash size="12" />
-            </button>
+          </div>
+        </div>
+
+        <!-- NOISE PARAMETERS -->
+        <div v-else-if="signalType === 'white-noise' || signalType === 'pink-noise'" class="signal-config-container grid-params">
+          <div class="param-row">
+            <div class="param-info">
+              <label for="sg-amp-noise" class="param-label">Amplitud (Pico / RMS)</label>
+              <input id="sg-amp-noise" v-model.number="amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
+            </div>
+            <input
+              v-model.number="amplitude"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              class="slider-param"
+            />
+          </div>
+        </div>
+
+        <!-- SWEEP PARAMETERS -->
+        <div v-else-if="signalType === 'sweep'" class="signal-config-container grid-params">
+          <div class="sweep-params-row">
+            <div class="param-row">
+              <div class="param-info">
+                <label for="sg-fstart" class="param-label">Freq Inicial (Hz)</label>
+                <input id="sg-fstart" v-model.number="fStart" type="number" min="1" :max="fs / 2" class="num-input-small" />
+              </div>
+              <input
+                v-model.number="fStart"
+                type="range"
+                min="20"
+                :max="fs / 2"
+                step="1"
+                class="slider-param"
+              />
+            </div>
+            <div class="param-row">
+              <div class="param-info">
+                <label for="sg-fend" class="param-label">Freq Final (Hz)</label>
+                <input id="sg-fend" v-model.number="fEnd" type="number" min="1" :max="fs / 2" class="num-input-small" />
+              </div>
+              <input
+                v-model.number="fEnd"
+                type="range"
+                min="20"
+                :max="fs / 2"
+                step="1"
+                class="slider-param"
+              />
+            </div>
+          </div>
+          
+          <div class="sweep-params-row">
+            <div class="param-row flex-item">
+              <label for="sg-sweep-type-select" class="param-label">Tipo de Barrido</label>
+              <select id="sg-sweep-type-select" v-model="sweepType" class="select-ctrl select-sweep-type">
+                <option value="linear">Lineal</option>
+                <option value="logarithmic">Logarítmico</option>
+              </select>
+            </div>
+            <div class="param-row flex-item">
+              <div class="param-info">
+                <label for="sg-amp-sweep" class="param-label">Amplitud</label>
+                <input id="sg-amp-sweep" v-model.number="amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
+              </div>
+              <input
+                v-model.number="amplitude"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                class="slider-param"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -169,7 +323,7 @@ async function exportWav() {
           <button
             id="sg-generate-btn"
             class="btn btn-primary"
-            :disabled="isLoading || tones.length === 0"
+            :disabled="isLoading || (signalType === 'sine' && tones.length === 0)"
             @click="generate"
           >
             <IconPlayerPlay size="13" />
@@ -444,5 +598,97 @@ async function exportWav() {
   background: var(--color-bg-secondary);
   border-radius: var(--border-radius-md);
   border: 0.5px solid var(--color-border);
+}
+
+/* New layout containers & params styles */
+.signal-config-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--color-bg-secondary);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: 12px;
+  margin-top: 4px;
+}
+
+.type-selector-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.select-type {
+  font-weight: 500;
+  border-color: var(--color-accent);
+}
+
+.tones-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.section-subtitle {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.grid-params {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.param-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.param-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.param-label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.num-input-small {
+  width: 70px;
+  padding: 3px 6px;
+  background: var(--color-bg-elevated);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.slider-param {
+  width: 100%;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.sweep-params-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.select-sweep-type {
+  width: 100%;
+  padding: 4px 8px;
+  background: var(--color-bg-elevated);
+}
+
+.flex-item {
+  justify-content: flex-start;
 }
 </style>

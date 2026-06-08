@@ -109,9 +109,100 @@ export const useAudioStore = defineStore('audio', () => {
   const streamError = ref<string | null>(null)
   const isLoading   = ref(false)
 
+  // ── Simulador local ───────────────────────────────────────────────────────
+  const isSimulating = ref(false)
+  let simInterval: ReturnType<typeof setInterval> | null = null
+
+  function startSimulation(): void {
+    if (simInterval) clearInterval(simInterval)
+    isSimulating.value = true
+    streamState.value = 'running'
+    streamError.value = null
+    
+    const size = fftSize.value
+    const half = size / 2
+    const fs = selectedSampleRate.value
+    const freqs = Array.from({ length: half }, (_, i) => (i * fs) / size)
+    
+    let phase = 0
+    
+    simInterval = setInterval(() => {
+      if (!isSimulating.value) return
+      
+      const mags = new Float32Array(half)
+      phase += 0.05
+      
+      // Simular un tono principal con barrido entre 800 Hz y 1800 Hz
+      const toneFreq = 1200 + 500 * Math.sin(phase)
+      
+      // Simular un tono secundario de baja frecuencia
+      const toneFreq2 = 400 + 100 * Math.cos(phase * 1.5)
+      
+      for (let i = 0; i < half; i++) {
+        const f = freqs[i]
+        
+        // Ruido de fondo variable tipo rosa
+        let db = -80 + Math.random() * 8 + 3 * Math.sin(phase * 0.2)
+        if (f > 0) {
+          db -= 10 * Math.log10(f / 100)
+        }
+        
+        // Tono 1
+        const dist1 = Math.abs(f - toneFreq)
+        if (dist1 < 200) {
+          const toneDb = -15 - (dist1 * 0.15)
+          db = Math.max(db, toneDb)
+        }
+        
+        // Tono 2
+        const dist2 = Math.abs(f - toneFreq2)
+        if (dist2 < 100) {
+          const toneDb = -25 - (dist2 * 0.2)
+          db = Math.max(db, toneDb)
+        }
+        
+        // Armónicos
+        const harmonics = [2, 3]
+        for (const h of harmonics) {
+          const hFreq = toneFreq * h
+          const hDist = Math.abs(f - hFreq)
+          if (hDist < 150) {
+            const hDb = -30 - (h * 5) - (hDist * 0.2)
+            db = Math.max(db, hDb)
+          }
+        }
+        
+        mags[i] = Math.pow(10, db / 20)
+      }
+      
+      const level = -20 + 3 * Math.sin(phase)
+      const result: FFTResult = {
+        frequencies: freqs,
+        magnitudes_db: Array.from(mags).map(m => 20 * Math.log10(m + 1e-12)),
+        level_dbfs: level,
+        channel_levels_dbfs: [level, level - 10],
+        timestamp_ms: Date.now()
+      }
+      
+      fftResult.value = result
+      currentLevel_dBFS.value = level
+      
+      signalStore.frequencies = result.frequencies
+      signalStore.fftMagnitudes = result.magnitudes_db
+    }, 50)
+  }
+
+  function stopSimulation(): void {
+    isSimulating.value = false
+    if (simInterval) {
+      clearInterval(simInterval)
+      simInterval = null
+    }
+  }
+
   // ── RTA (mantiene compatibilidad con el código anterior) ──────────────────
   /** @deprecated Usar streamState en su lugar para el estado real del stream. */
-  const isStreaming = computed(() => streamState.value === 'running')
+  const isStreaming = computed(() => streamState.value === 'running' || isSimulating.value)
 
   // ── Métricas en vivo ──────────────────────────────────────────────────────
   /** Nivel RMS del último bloque en dBFS. */
@@ -226,6 +317,10 @@ export const useAudioStore = defineStore('audio', () => {
         invoke<AudioDeviceInfo[]>('get_input_devices'),
         invoke<AudioDeviceInfo[]>('get_output_devices'),
       ])
+
+      console.log('[AudioStore] get_input_devices →', inputs.map(d => d.name))
+      console.log('[AudioStore] get_output_devices →', outputs.map(d => d.name))
+
       inputDevices.value  = inputs
       outputDevices.value = outputs
 
@@ -290,7 +385,11 @@ export const useAudioStore = defineStore('audio', () => {
   async function stopStream(): Promise<void> {
     isLoading.value = true
     try {
-      await invoke('stop_audio_stream')
+      if (isSimulating.value) {
+        stopSimulation()
+      } else {
+        await invoke('stop_audio_stream')
+      }
       streamState.value = 'stopped'
       streamError.value = null
     } catch (err) {
@@ -391,6 +490,7 @@ export const useAudioStore = defineStore('audio', () => {
    * Limpia los listeners Tauri. Llamar al desmontar la app.
    */
   function cleanup(): void {
+    stopSimulation()
     _unlisteners.forEach(fn => fn())
     _unlisteners.length = 0
   }
@@ -577,6 +677,9 @@ export const useAudioStore = defineStore('audio', () => {
     fftSize,
     windowType,
     avgMode,
-    // RTA legacy (fftSize, windowType, avgMode los mantiene RTAView localmente)
+    // Simulator
+    isSimulating,
+    startSimulation,
+    stopSimulation
   }
 })

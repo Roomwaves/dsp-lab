@@ -66,7 +66,7 @@ export const api = {
     } else if (paramsOrAverages) {
       Object.assign(payload, paramsOrAverages)
     }
-    return post<CoherenceOutput>('/analysis/coherence', payload)
+    return post<CoherenceOutput>('/coherence/compute', payload)
   },
 
   movingAverage: (samples: number[], M: number, passes = 1) =>
@@ -80,6 +80,22 @@ export const api = {
 
   addWhiteNoise: (samples: number[], fs: number, snrDb: number) =>
     post<GeneratedSignalOutput>('/signals/add-noise', { samples, fs, snr_db: snrDb }),
+
+  generateSignal: (params: {
+    signalType: string
+    fs: number
+    duration: number
+    amplitude: number
+    frequencies?: number[]
+    amplitudes?: number[]
+    frequency?: number
+    fStart?: number
+    fEnd?: number
+    sweepType?: string
+    applyNoise?: boolean
+    snrDb?: number
+  }) => post<GeneratedSignalOutput>('/signals/generate', params),
+
 
   downloadAudio: async (samples: number[], fs: number): Promise<void> => {
     const res = await fetch(`${API_BASE}/signals/export-wav`, {
