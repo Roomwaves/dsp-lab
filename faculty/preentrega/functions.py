@@ -10,12 +10,20 @@ from core.dsp.analysis import (
     compute_fft,
     compute_frequency_response,
     convolve_frequency,
+    convolve_time,
 )
 
 # 1. Imports and re-exports from core/dsp
-from core.dsp.filters import apply_fir, comb_filter, moving_average
+from core.dsp.coherence import compute_coherence
+from core.dsp.filters import apply_fir, comb_filter, moving_average, truncate_fir
 from core.dsp.io import load_audio, load_fir_coefficients
-from core.dsp.signals import add_white_noise, generate_pure_tones
+from core.dsp.plots import (
+    plot_coherence,
+    plot_frequency_response,
+    plot_signal,
+    plot_spectrum,
+)
+from core.dsp.signals import add_white_noise, generate_impulse, generate_pure_tones
 
 # 2. Compatibility wrappers for the team's notebook
 
@@ -86,6 +94,22 @@ def rta_frecuencia(x, y):
     freqs, H = compute_frequency_response(x, y, fs=44100)
     return H
 
+def identificar_sistema(x, y, fs=44100, window_size=1024):
+    """
+    Calcula la respuesta en frecuencia estimador H1 = Gxy / Gxx
+    utilizando promediado Welch para suavizar el ruido.
+    """
+    freqs, H = compute_frequency_response(x, y, fs=fs, window_size=window_size)
+    return freqs, H
+
+def evaluar_coherencia(x, y, fs=44100, window_size=1024):
+    """
+    Calcula la coherencia cuadrática gamma_xy^2(w) = |Gxy|^2 / (Gxx * Gyy)
+    para analizar la linealidad entre la entrada x y la salida y.
+    """
+    freqs, coh = compute_coherence(x, y, fs=fs, window_size=window_size)
+    return freqs, coh
+
 def suma_tonos_puros(f, a, duracion, amp_ruido, fs=44100):
     """Suma tonos puros con ruido blanco de distintas amplitudes."""
     signal = generate_pure_tones(frequencies=list(f), amplitudes=list(a), fs=fs, duration=duracion)
@@ -137,15 +161,27 @@ def filtrar_frecuencia_manual(x, b):
 __all__ = [
     "compute_fft",
     "compute_frequency_response",
+    "compute_coherence",
     "convolve_frequency",
+    "convolve_time",
     "apply_fir",
+    "truncate_fir",
     "comb_filter",
     "moving_average",
     "load_audio",
     "load_fir_coefficients",
     "add_white_noise",
+    "generate_impulse",
     "generate_pure_tones",
+    "plot_signal",
+    "plot_spectrum",
+    "plot_frequency_response",
+    "plot_coherence",
+    "identificar_sistema",
+    "evaluar_coherencia",
     "graficar_temp",
+    "graficar_frecuencias",
+    "rta_frecuencia",
     "suma_tonos_puros",
     "suma_musical",
     "filtro_media_movil",
