@@ -1,108 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { IconPlus, IconTrash, IconDownload, IconPlayerPlay } from '@tabler/icons-vue';
-import { api } from '../../../services/api';
+import { IconPlus, IconTrash, IconDownload, IconPlayerPlay, IconVolume, IconVolumeOff } from '@tabler/icons-vue';
+import { useSignalStore } from '../../../stores/useSignalStore';
 import WaveformPlot from '../../plots/WaveformPlot.vue';
 import SpectrumPlot from '../../plots/SpectrumPlot.vue';
 
-// Signal type: 'sine' | 'square' | 'triangle' | 'white-noise' | 'pink-noise' | 'sweep'
-const signalType = ref('sine');
+const signalStore = useSignalStore();
 
-// Tone entries for multi-tone (sine mode)
-interface ToneEntry {
-  frequency: number;
-  amplitude: number;
-}
-
-const tones = ref<ToneEntry[]>([
-  { frequency: 440, amplitude: 1.0 },
-]);
-
-// Single wave / noise parameters
-const frequency = ref(440);
-const amplitude = ref(0.8);
-
-// Sweep parameters
-const fStart = ref(20);
-const fEnd = ref(20000);
-const sweepType = ref('linear'); // 'linear' | 'logarithmic'
-
-// Global Settings
-const fs = ref(44100);
-const duration = ref(1.0);
-const snrDb = ref(20);
-const applyNoise = ref(false);
-
-const fsOptions = [8000, 22050, 44100, 48000];
+const fsOptions = [8000, 22050, 44100, 48000, 96000];
 const durationOptions = [0.5, 1, 2, 5];
-
-// Result
-const samples = ref<number[]>([]);
-const fftFrequencies = ref<number[]>([]);
-const fftMagnitudes = ref<number[]>([]);
-const isLoading = ref(false);
-const error = ref<string | null>(null);
-
-const hasSamples = computed(() => samples.value.length > 0);
-
-function addTone() {
-  tones.value.push({ frequency: 1000, amplitude: 0.5 });
-}
-
-function removeTone(i: number) {
-  if (tones.value.length > 1) tones.value.splice(i, 1);
-}
-
-async function generate() {
-  isLoading.value = true;
-  error.value = null;
-  try {
-    const params: any = {
-      signalType: signalType.value,
-      fs: fs.value,
-      duration: duration.value,
-      amplitude: amplitude.value,
-      applyNoise: applyNoise.value,
-      snrDb: snrDb.value,
-    };
-
-    if (signalType.value === 'sine') {
-      params.frequencies = tones.value.map(t => t.frequency);
-      params.amplitudes = tones.value.map(t => t.amplitude);
-    } else if (signalType.value === 'square' || signalType.value === 'triangle') {
-      params.frequency = frequency.value;
-      params.amplitude = amplitude.value;
-    } else if (signalType.value === 'white-noise' || signalType.value === 'pink-noise') {
-      params.amplitude = amplitude.value;
-    } else if (signalType.value === 'sweep') {
-      params.fStart = fStart.value;
-      params.fEnd = fEnd.value;
-      params.sweepType = sweepType.value;
-      params.amplitude = amplitude.value;
-    }
-
-    const result = await api.generateSignal(params);
-    samples.value = result.samples;
-
-    // Compute FFT for spectrum
-    const fftResult = await api.fft(samples.value, fs.value);
-    fftFrequencies.value = fftResult.frequencies;
-    fftMagnitudes.value = fftResult.magnitudes;
-  } catch (e) {
-    error.value = (e as Error).message;
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-async function exportWav() {
-  if (!hasSamples.value) return;
-  try {
-    await api.downloadAudio(samples.value, fs.value);
-  } catch (e) {
-    error.value = (e as Error).message;
-  }
-}
 </script>
 
 <template>
@@ -115,7 +20,7 @@ async function exportWav() {
           <span class="panel-title">Tipo de Señal</span>
           <!-- Signal Type Dropdown -->
           <div class="type-selector-wrapper">
-            <select id="sg-type-select" v-model="signalType" class="select-ctrl select-type">
+            <select id="sg-type-select" v-model="signalStore.signalType" class="select-ctrl select-type">
               <option value="sine">Seno / Multi-tono</option>
               <option value="square">Onda Cuadrada</option>
               <option value="triangle">Onda Triangular</option>
@@ -127,10 +32,10 @@ async function exportWav() {
         </div>
 
         <!-- SINE / MULTI-TONE PARAMETERS -->
-        <div v-if="signalType === 'sine'" class="signal-config-container">
+        <div v-if="signalStore.signalType === 'sine'" class="signal-config-container">
           <div class="tones-table-header">
             <span class="section-subtitle">Tonos puros a sumar:</span>
-            <button class="icon-btn" title="Agregar tono" @click="addTone">
+            <button class="icon-btn" title="Agregar tono" @click="signalStore.addTone">
               <IconPlus size="13" />
             </button>
           </div>
@@ -141,7 +46,7 @@ async function exportWav() {
               <span></span>
             </div>
             <div
-              v-for="(tone, i) in tones"
+              v-for="(tone, i) in signalStore.tones"
               :key="i"
               class="table-row"
             >
@@ -150,7 +55,7 @@ async function exportWav() {
                 v-model.number="tone.frequency"
                 type="number"
                 min="1"
-                :max="fs / 2"
+                :max="signalStore.fs / 2"
                 step="1"
                 class="num-input"
                 placeholder="440"
@@ -165,36 +70,96 @@ async function exportWav() {
                 class="num-input"
                 placeholder="1.0"
               />
-              <button class="icon-btn danger" :disabled="tones.length === 1" @click="removeTone(i)">
+              <button class="icon-btn danger" :disabled="signalStore.tones.length === 1" @click="signalStore.removeTone(i)">
                 <IconTrash size="12" />
               </button>
             </div>
           </div>
         </div>
 
-        <!-- SQUARE / TRIANGLE WAVE PARAMETERS -->
-        <div v-else-if="signalType === 'square' || signalType === 'triangle'" class="signal-config-container grid-params">
+        <!-- SQUARE PARAMETERS -->
+        <div v-else-if="signalStore.signalType === 'square'" class="signal-config-container grid-params">
           <div class="param-row">
             <div class="param-info">
-              <label for="sg-freq-single" class="param-label">Frecuencia (Hz)</label>
-              <input id="sg-freq-single" v-model.number="frequency" type="number" min="1" :max="fs / 2" class="num-input-small" />
+              <label for="sg-freq-square" class="param-label">Frecuencia (Hz)</label>
+              <input id="sg-freq-square" v-model.number="signalStore.frequency" type="number" min="1" :max="signalStore.fs / 2" class="num-input-small" />
             </div>
             <input
-              v-model.number="frequency"
+              v-model.number="signalStore.frequency"
               type="range"
               min="20"
-              :max="fs / 2"
+              :max="signalStore.fs / 2"
               step="1"
               class="slider-param"
             />
           </div>
           <div class="param-row">
             <div class="param-info">
-              <label for="sg-amp-single" class="param-label">Amplitud</label>
-              <input id="sg-amp-single" v-model.number="amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
+              <label for="sg-amp-square" class="param-label">Amplitud</label>
+              <input id="sg-amp-square" v-model.number="signalStore.amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
             </div>
             <input
-              v-model.number="amplitude"
+              v-model.number="signalStore.amplitude"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              class="slider-param"
+            />
+          </div>
+          <div class="param-row">
+            <div class="param-info">
+              <label for="sg-duty-square" class="param-label">Ciclo de Trabajo (Duty {{ Math.round(signalStore.duty * 100) }}%)</label>
+              <input id="sg-duty-square" v-model.number="signalStore.duty" type="number" min="0.01" max="0.99" step="0.01" class="num-input-small" />
+            </div>
+            <input
+              v-model.number="signalStore.duty"
+              type="range"
+              min="0.01"
+              max="0.99"
+              step="0.01"
+              class="slider-param"
+            />
+          </div>
+        </div>
+
+        <!-- TRIANGLE PARAMETERS -->
+        <div v-else-if="signalStore.signalType === 'triangle'" class="signal-config-container grid-params">
+          <div class="param-row">
+            <div class="param-info">
+              <label for="sg-freq-tri" class="param-label">Frecuencia (Hz)</label>
+              <input id="sg-freq-tri" v-model.number="signalStore.frequency" type="number" min="1" :max="signalStore.fs / 2" class="num-input-small" />
+            </div>
+            <input
+              v-model.number="signalStore.frequency"
+              type="range"
+              min="20"
+              :max="signalStore.fs / 2"
+              step="1"
+              class="slider-param"
+            />
+          </div>
+          <div class="param-row">
+            <div class="param-info">
+              <label for="sg-amp-tri" class="param-label">Amplitud</label>
+              <input id="sg-amp-tri" v-model.number="signalStore.amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
+            </div>
+            <input
+              v-model.number="signalStore.amplitude"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              class="slider-param"
+            />
+          </div>
+          <div class="param-row">
+            <div class="param-info">
+              <label for="sg-width-tri" class="param-label">Simetría Ramp / Width ({{ Math.round(signalStore.width * 100) }}%)</label>
+              <input id="sg-width-tri" v-model.number="signalStore.width" type="number" min="0" max="1" step="0.01" class="num-input-small" />
+            </div>
+            <input
+              v-model.number="signalStore.width"
               type="range"
               min="0"
               max="1"
@@ -205,14 +170,14 @@ async function exportWav() {
         </div>
 
         <!-- NOISE PARAMETERS -->
-        <div v-else-if="signalType === 'white-noise' || signalType === 'pink-noise'" class="signal-config-container grid-params">
+        <div v-else-if="signalStore.signalType === 'white-noise' || signalStore.signalType === 'pink-noise'" class="signal-config-container grid-params">
           <div class="param-row">
             <div class="param-info">
               <label for="sg-amp-noise" class="param-label">Amplitud (Pico / RMS)</label>
-              <input id="sg-amp-noise" v-model.number="amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
+              <input id="sg-amp-noise" v-model.number="signalStore.amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
             </div>
             <input
-              v-model.number="amplitude"
+              v-model.number="signalStore.amplitude"
               type="range"
               min="0"
               max="1"
@@ -223,18 +188,18 @@ async function exportWav() {
         </div>
 
         <!-- SWEEP PARAMETERS -->
-        <div v-else-if="signalType === 'sweep'" class="signal-config-container grid-params">
+        <div v-else-if="signalStore.signalType === 'sweep'" class="signal-config-container grid-params">
           <div class="sweep-params-row">
             <div class="param-row">
               <div class="param-info">
                 <label for="sg-fstart" class="param-label">Freq Inicial (Hz)</label>
-                <input id="sg-fstart" v-model.number="fStart" type="number" min="1" :max="fs / 2" class="num-input-small" />
+                <input id="sg-fstart" v-model.number="signalStore.fStart" type="number" min="1" :max="signalStore.fs / 2" class="num-input-small" />
               </div>
               <input
-                v-model.number="fStart"
+                v-model.number="signalStore.fStart"
                 type="range"
                 min="20"
-                :max="fs / 2"
+                :max="signalStore.fs / 2"
                 step="1"
                 class="slider-param"
               />
@@ -242,13 +207,13 @@ async function exportWav() {
             <div class="param-row">
               <div class="param-info">
                 <label for="sg-fend" class="param-label">Freq Final (Hz)</label>
-                <input id="sg-fend" v-model.number="fEnd" type="number" min="1" :max="fs / 2" class="num-input-small" />
+                <input id="sg-fend" v-model.number="signalStore.fEnd" type="number" min="1" :max="signalStore.fs / 2" class="num-input-small" />
               </div>
               <input
-                v-model.number="fEnd"
+                v-model.number="signalStore.fEnd"
                 type="range"
                 min="20"
-                :max="fs / 2"
+                :max="signalStore.fs / 2"
                 step="1"
                 class="slider-param"
               />
@@ -258,7 +223,7 @@ async function exportWav() {
           <div class="sweep-params-row">
             <div class="param-row flex-item">
               <label for="sg-sweep-type-select" class="param-label">Tipo de Barrido</label>
-              <select id="sg-sweep-type-select" v-model="sweepType" class="select-ctrl select-sweep-type">
+              <select id="sg-sweep-type-select" v-model="signalStore.sweepType" class="select-ctrl select-sweep-type">
                 <option value="linear">Lineal</option>
                 <option value="logarithmic">Logarítmico</option>
               </select>
@@ -266,10 +231,10 @@ async function exportWav() {
             <div class="param-row flex-item">
               <div class="param-info">
                 <label for="sg-amp-sweep" class="param-label">Amplitud</label>
-                <input id="sg-amp-sweep" v-model.number="amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
+                <input id="sg-amp-sweep" v-model.number="signalStore.amplitude" type="number" min="0" max="1" step="0.01" class="num-input-small" />
               </div>
               <input
-                v-model.number="amplitude"
+                v-model.number="signalStore.amplitude"
                 type="range"
                 min="0"
                 max="1"
@@ -286,7 +251,7 @@ async function exportWav() {
         <!-- Sample Rate -->
         <div class="setting-group">
           <label class="setting-label" for="sg-fs-select">Fs</label>
-          <select id="sg-fs-select" v-model.number="fs" class="select-ctrl">
+          <select id="sg-fs-select" v-model.number="signalStore.fs" class="select-ctrl">
             <option v-for="f in fsOptions" :key="f" :value="f">{{ f >= 1000 ? f / 1000 + ' kHz' : f + ' Hz' }}</option>
           </select>
         </div>
@@ -294,7 +259,7 @@ async function exportWav() {
         <!-- Duration -->
         <div class="setting-group">
           <label class="setting-label" for="sg-dur-select">Duración</label>
-          <select id="sg-dur-select" v-model.number="duration" class="select-ctrl">
+          <select id="sg-dur-select" v-model.number="signalStore.duration" class="select-ctrl">
             <option v-for="d in durationOptions" :key="d" :value="d">{{ d }} s</option>
           </select>
         </div>
@@ -302,14 +267,14 @@ async function exportWav() {
         <!-- Noise -->
         <div class="setting-group">
           <label class="setting-label" for="sg-noise-toggle">Ruido</label>
-          <input id="sg-noise-toggle" v-model="applyNoise" type="checkbox" class="checkbox" />
+          <input id="sg-noise-toggle" v-model="signalStore.applyNoise" type="checkbox" class="checkbox" />
         </div>
 
-        <div v-if="applyNoise" class="setting-group">
-          <label class="setting-label" for="sg-snr-slider">SNR: {{ snrDb }} dB</label>
+        <div v-if="signalStore.applyNoise" class="setting-group">
+          <label class="setting-label" for="sg-snr-slider">SNR: {{ signalStore.snrDb }} dB</label>
           <input
             id="sg-snr-slider"
-            v-model.number="snrDb"
+            v-model.number="signalStore.snrDb"
             type="range"
             min="-10"
             max="60"
@@ -323,18 +288,27 @@ async function exportWav() {
           <button
             id="sg-generate-btn"
             class="btn btn-primary"
-            :disabled="isLoading || (signalType === 'sine' && tones.length === 0)"
-            @click="generate"
+            :disabled="signalStore.isLoading || (signalStore.signalType === 'sine' && signalStore.tones.length === 0)"
+            @click="signalStore.generate"
           >
             <IconPlayerPlay size="13" />
-            {{ isLoading ? 'Generando…' : 'Generar' }}
+            {{ signalStore.isLoading ? 'Generando…' : 'Generar' }}
+          </button>
+
+          <button
+            v-if="signalStore.hasSamples"
+            class="btn btn-secondary"
+            @click="signalStore.isPlaying ? signalStore.stopAudio() : signalStore.playAudio()"
+          >
+            <component :is="signalStore.isPlaying ? IconVolumeOff : IconVolume" size="13" />
+            {{ signalStore.isPlaying ? 'Detener' : 'Escuchar' }}
           </button>
 
           <button
             id="sg-export-btn"
             class="btn btn-secondary"
-            :disabled="!hasSamples"
-            @click="exportWav"
+            :disabled="!signalStore.hasSamples"
+            @click="signalStore.exportWav"
           >
             <IconDownload size="13" />
             Export
@@ -344,34 +318,34 @@ async function exportWav() {
     </div>
 
     <!-- Error -->
-    <div v-if="error" class="error-banner">{{ error }}</div>
+    <div v-if="signalStore.error" class="error-banner">{{ signalStore.error }}</div>
 
     <!-- Plots -->
     <div class="plots-area-drawer">
       <div class="plot-wrapper">
-        <div class="plot-title">Waveform</div>
+        <div class="plot-title">Waveform (Forma de Onda)</div>
         <WaveformPlot
-          v-if="hasSamples"
+          v-if="signalStore.hasSamples"
           id="sg-waveform-plot"
-          :samples="samples"
-          :fs="fs"
+          :samples="signalStore.samples"
+          :fs="signalStore.fs"
           :height="130"
         />
-        <div v-else class="empty-plot">—</div>
+        <div v-else class="empty-plot">Sin señal generada</div>
       </div>
 
       <div class="plot-wrapper">
-        <div class="plot-title">Spectrum</div>
+        <div class="plot-title">Spectrum (Espectro FFT)</div>
         <SpectrumPlot
-          v-if="hasSamples"
+          v-if="signalStore.hasSamples"
           id="sg-spectrum-plot"
-          :frequencies="fftFrequencies"
-          :magnitudes="fftMagnitudes"
+          :frequencies="signalStore.fftFrequencies"
+          :magnitudes="signalStore.fftMagnitudes"
           :db-scale="true"
           :log-frequency="true"
           :height="130"
         />
-        <div v-else class="empty-plot">—</div>
+        <div v-else class="empty-plot">Sin señal generada</div>
       </div>
     </div>
   </div>
@@ -402,45 +376,89 @@ async function exportWav() {
 
 .panel-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
 }
 
 .panel-title {
   font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.select-ctrl {
+  background: var(--surface-3, #1e1e21);
+  border: 0.5px solid var(--color-border);
+  color: var(--text-white, #ffffff);
+  border-radius: var(--border-radius-md);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.select-ctrl option {
+  background: var(--surface-3, #1e1e21);
+  color: var(--text-white, #ffffff);
+}
+
+.select-type {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.signal-config-container {
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.grid-params {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sweep-params-row {
+  display: flex;
+  gap: 12px;
+}
+
+.flex-item {
+  flex: 1;
+}
+
+.section-subtitle {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.tones-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .icon-btn {
+  background: transparent;
+  border: 0.5px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  border: 0.5px solid var(--color-border);
-  background: var(--color-bg-elevated);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
 }
 
-.icon-btn:hover:not(:disabled) {
-  background: var(--color-accent-dim);
-  color: var(--color-accent);
-}
-
-.icon-btn.danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.12);
-  color: #EF4444;
-}
-
-.icon-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+.icon-btn.danger {
+  color: #ff5555;
+  border-color: rgba(255, 85, 85, 0.3);
 }
 
 .tones-table {
@@ -451,45 +469,76 @@ async function exportWav() {
 
 .table-head {
   display: grid;
-  grid-template-columns: 1fr 1fr 28px;
+  grid-template-columns: 1fr 1fr 30px;
   gap: 8px;
   font-size: 10px;
-  color: var(--color-text-secondary);
-  padding: 0 2px;
+  color: var(--color-text-tertiary);
+  font-weight: 600;
 }
 
 .table-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 28px;
+  grid-template-columns: 1fr 1fr 30px;
   gap: 8px;
   align-items: center;
 }
 
 .num-input {
-  width: 100%;
-  padding: 4px 6px;
   background: var(--color-bg-elevated);
   border: 0.5px solid var(--color-border);
-  border-radius: var(--border-radius-md);
   color: var(--color-text-primary);
+  border-radius: 4px;
+  padding: 4px 6px;
   font-size: 11px;
-  font-family: var(--font-mono);
+  width: 100%;
+}
+
+.param-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.param-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.param-label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.num-input-small {
+  background: var(--color-bg-elevated);
+  border: 0.5px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 11px;
+  width: 60px;
+  text-align: right;
+}
+
+.slider-param {
+  accent-color: var(--color-accent);
+  height: 4px;
+  cursor: pointer;
 }
 
 /* Settings col */
 .settings-col {
+  width: 160px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 220px;
-  flex-shrink: 0;
+  gap: 10px;
 }
 
 .setting-group {
   display: flex;
-  align-items: center;
-  gap: 10px;
   justify-content: space-between;
+  align-items: center;
 }
 
 .setting-label {
@@ -497,84 +546,64 @@ async function exportWav() {
   color: var(--color-text-secondary);
 }
 
-.select-ctrl {
-  background: var(--color-bg-elevated);
-  border: 0.5px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  color: var(--color-text-primary);
-  font-size: 11px;
-  padding: 3px 6px;
-  cursor: pointer;
-}
-
-.checkbox {
-  accent-color: var(--color-accent);
-  cursor: pointer;
-}
-
-.slider {
-  width: 100px;
-  accent-color: var(--color-accent);
-  cursor: pointer;
-}
-
 .actions-row {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
 }
 
 .btn {
-  flex: 1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 5px 10px;
+  gap: 6px;
+  padding: 6px 12px;
   border-radius: var(--border-radius-md);
   font-size: 11px;
-  font-weight: 500;
-  border: none;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
-}
-
-.btn:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
+  border: none;
 }
 
 .btn-primary {
   background: var(--color-accent);
-  color: #fff;
+  color: #000;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
-  background: var(--color-bg-elevated);
-  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
   border: 0.5px solid var(--color-border);
+  color: var(--color-text-primary);
 }
 
-/* Error */
 .error-banner {
   margin-top: 8px;
   padding: 6px 10px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 0.5px solid rgba(239, 68, 68, 0.4);
-  border-radius: var(--border-radius-md);
+  background: rgba(255, 85, 85, 0.15);
+  border: 0.5px solid #ff5555;
+  color: #ff5555;
   font-size: 11px;
-  color: #EF4444;
+  border-radius: 4px;
 }
 
 /* Plots */
 .plots-area-drawer {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-top: 16px;
+  padding-top: 12px;
 }
 
 .plot-wrapper {
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-md);
+  padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -582,10 +611,9 @@ async function exportWav() {
 
 .plot-title {
   font-size: 10px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
 }
 
 .empty-plot {
@@ -593,102 +621,7 @@ async function exportWav() {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--color-text-tertiary);
   font-size: 11px;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-secondary);
-  border-radius: var(--border-radius-md);
-  border: 0.5px solid var(--color-border);
-}
-
-/* New layout containers & params styles */
-.signal-config-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: var(--color-bg-secondary);
-  border: 0.5px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  padding: 12px;
-  margin-top: 4px;
-}
-
-.type-selector-wrapper {
-  display: flex;
-  align-items: center;
-}
-
-.select-type {
-  font-weight: 500;
-  border-color: var(--color-accent);
-}
-
-.tones-table-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.section-subtitle {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-
-.grid-params {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.param-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.param-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.param-label {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.num-input-small {
-  width: 70px;
-  padding: 3px 6px;
-  background: var(--color-bg-elevated);
-  border: 0.5px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  color: var(--color-text-primary);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  text-align: right;
-}
-
-.slider-param {
-  width: 100%;
-  accent-color: var(--color-accent);
-  cursor: pointer;
-}
-
-.sweep-params-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.select-sweep-type {
-  width: 100%;
-  padding: 4px 8px;
-  background: var(--color-bg-elevated);
-}
-
-.flex-item {
-  justify-content: flex-start;
 }
 </style>

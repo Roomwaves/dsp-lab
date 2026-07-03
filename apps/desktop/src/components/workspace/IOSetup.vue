@@ -345,6 +345,11 @@ onMounted(() => {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.sleek-select option {
+  background-color: var(--surface-3, #1e1e21);
+  color: var(--text-white, #ffffff);
+}
+
 .sleek-select:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px var(--color-accent-dim);

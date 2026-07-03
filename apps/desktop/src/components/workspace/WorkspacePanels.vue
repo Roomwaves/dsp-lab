@@ -1087,8 +1087,8 @@ function clearSignalSlot(slot: 'x' | 'y') {
 }
 
 .bar-select option {
-  background: var(--color-bg-secondary);
-  color: var(--color-text-primary);
+  background-color: var(--surface-3, #1e1e21);
+  color: var(--text-white, #ffffff);
 }
 
 /* Tools Mode Styles */

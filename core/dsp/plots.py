@@ -40,7 +40,8 @@ def plot_frequency_response(
     frequencies: np.ndarray,
     H: np.ndarray,
     title: str = "Respuesta en Frecuencia",
-    fig=None
+    fig=None,
+    ylim: tuple[float, float] | None = (-60, 5)
 ) -> plt.Figure:
     """
     Grafica la respuesta en frecuencia de un sistema (Módulo en dB y Fase en
@@ -72,6 +73,8 @@ def plot_frequency_response(
     ax1.grid(True, which='both', linestyle='--', alpha=0.5)
     ax1.grid(True, which='minor', linestyle=':', alpha=0.2)
     ax1.set_title(title, fontsize=13, fontweight='bold', pad=12)
+    if ylim is not None:
+        ax1.set_ylim(ylim)
     ax1.legend(loc='upper right')
     
     # Línea de referencia típica a -3 dB si es pertinente al gráfico

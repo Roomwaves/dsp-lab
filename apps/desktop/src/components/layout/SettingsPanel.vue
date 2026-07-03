@@ -283,6 +283,11 @@ function close() {
   transition: border-color 0.15s var(--ease-material);
 }
 
+.custom-select option {
+  background-color: var(--surface-3, #1e1e21);
+  color: var(--text-white, #ffffff);
+}
+
 .custom-select:focus {
   border-color: var(--border-bold);
 }

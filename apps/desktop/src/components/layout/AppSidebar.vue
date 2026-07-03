@@ -323,6 +323,11 @@ function deleteSnapshot(id: string) {
   cursor: pointer;
 }
 
+.param-row select option {
+  background-color: var(--surface-3, #1e1e21);
+  color: var(--text-white, #ffffff);
+}
+
 .param-row select:focus {
   border-color: var(--border-bold);
 }

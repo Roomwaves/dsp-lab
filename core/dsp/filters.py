@@ -104,13 +104,35 @@ def apply_fir(signal: np.ndarray, coefficients: np.ndarray) -> np.ndarray:
     """
     return np.convolve(signal, coefficients, mode='full')[:len(signal)]
 
-def truncate_fir(coefficients: np.ndarray, N: int) -> np.ndarray:
+def truncate_fir(coefficients: np.ndarray, N: int, mode: str = 'symmetric') -> np.ndarray:
     """
     Trunca los coeficientes de un filtro FIR.
+
+    Parameters:
+    -----------
+    coefficients : np.ndarray
+        Coeficientes originales del filtro FIR.
+    N : int
+        Número de coeficientes deseados (1 <= N <= len(coefficients)).
+    mode : str
+        'symmetric' para truncar centrado alrededor del pico central (conservando fase lineal y simetría),
+        'causal' o 'prefix' para tomar los primeros N coeficientes.
     """
     if N < 1 or N > len(coefficients):
         raise ValueError("N must satisfy 1 <= N <= len(coefficients)")
-    return coefficients[:N].copy()
+
+    if mode == 'symmetric':
+        center = int(np.argmax(np.abs(coefficients)))
+        half = N // 2
+        start = max(0, center - half)
+        end = start + N
+        if end > len(coefficients):
+            end = len(coefficients)
+            start = max(0, end - N)
+        return coefficients[start:end].copy()
+    else:
+        return coefficients[:N].copy()
+
 
 class FIRFilter:
     def __init__(self, coefficients: np.ndarray) -> None:
