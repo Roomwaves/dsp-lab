@@ -3,6 +3,7 @@ name: Compilar y Publicar Tauri
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   build-tauri:
@@ -43,11 +44,10 @@ jobs:
       # 4. Compilar el Motor DSP
       - name: Compilar Sidecar de Python
         run: |
-          uv venv
-          uv pip install -r pyproject.toml
+          uv sync
           uv pip install pyinstaller
           uv run pyinstaller --onefile --noconsole apps/api/main.py --name dsp-api
-          
+
           # Movemos el binario compilado a una carpeta que Tauri pueda leer
           mkdir -p apps/desktop/src-tauri/binaries
           mv dist/* apps/desktop/src-tauri/binaries/
