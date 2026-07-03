@@ -7,6 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from core.dsp.analysis import (
+    compute_fft,
     compute_frequency_response,
     convolve_frequency,
 )
@@ -14,7 +15,7 @@ from core.dsp.analysis import (
 # 1. Imports and re-exports from core/dsp
 from core.dsp.filters import apply_fir, comb_filter, moving_average
 from core.dsp.io import load_audio, load_fir_coefficients
-from core.dsp.signals import generate_pure_tones
+from core.dsp.signals import add_white_noise, generate_pure_tones
 
 # 2. Compatibility wrappers for the team's notebook
 
