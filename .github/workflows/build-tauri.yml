@@ -60,9 +60,9 @@ jobs:
 
       # 6. Compilar Tauri y empaquetar todo junto
       - name: Compilar y adjuntar binarios al Release
-        uses: tauri-apps/tauri-action@v2
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          releaseId: ${{ github.event.release.id }}
+          tagName: ${{ github.event.release.tag_name || 'v0.2.0' }}
           projectPath: apps/desktop
