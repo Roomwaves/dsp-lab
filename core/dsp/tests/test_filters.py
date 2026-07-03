@@ -165,11 +165,19 @@ class TestTruncateFIR:
     def test_output_length(self):
         h = np.random.randn(20)
         for N in [1, 3, 5, 10]:
-            assert len(truncate_fir(h, N)) == N
+            assert len(truncate_fir(h, N, mode='symmetric')) == N
+            assert len(truncate_fir(h, N, mode='causal')) == N
 
-    def test_values_are_first_n(self):
+    def test_values_are_first_n_causal(self):
         h = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-        np.testing.assert_allclose(truncate_fir(h, 3), np.array([1.0, 2.0, 3.0]))
+        np.testing.assert_allclose(truncate_fir(h, 3, mode='causal'), np.array([1.0, 2.0, 3.0]))
+
+    def test_symmetric_truncation_centered(self):
+        # Filtro simétrico con pico en el centro (índice 2)
+        h = np.array([0.1, 0.5, 1.0, 0.5, 0.1])
+        # Al pedir N=3 en modo simétrico, debe tomar la ventana centrada en 1.0 -> [0.5, 1.0, 0.5]
+        h_trunc = truncate_fir(h, 3, mode='symmetric')
+        np.testing.assert_allclose(h_trunc, np.array([0.5, 1.0, 0.5]))
 
     def test_full_length_returns_original(self):
         h = np.array([1.0, 2.0, 3.0])

@@ -1,7 +1,16 @@
 import numpy as np
 import pytest
 
-from core.dsp.signals import add_white_noise, generate_impulse, generate_pure_tones, generate_square_wave, generate_triangle_wave, generate_white_noise, generate_pink_noise, generate_sweep
+from core.dsp.signals import (
+    add_white_noise,
+    generate_impulse,
+    generate_pink_noise,
+    generate_pure_tones,
+    generate_square_wave,
+    generate_sweep,
+    generate_triangle_wave,
+    generate_white_noise,
+)
 
 
 class TestGeneratePureTones:
