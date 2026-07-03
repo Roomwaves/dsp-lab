@@ -4,9 +4,14 @@
 # DO NOT duplicate core implementations here.
 
 from core.dsp.analysis import (
+    compute_fft,
     compute_frequency_response,
 )
 from core.dsp.coherence import compute_coherence
+from core.dsp.filters import apply_fir
+from core.dsp.io import load_audio, load_fir_coefficients
+from core.dsp.plots import plot_coherence, plot_frequency_response
+from core.dsp.signals import add_white_noise, generate_pure_tones
 
 
 def identificar_sistema(x, y, fs=44100, window_size=1024):
