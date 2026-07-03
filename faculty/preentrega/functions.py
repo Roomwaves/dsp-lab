@@ -134,6 +134,27 @@ def filtrar_frecuencia_manual(x, b):
     return convolve_frequency(x, b)[:len(x)]
 
 
+__all__ = [
+    "compute_fft",
+    "compute_frequency_response",
+    "convolve_frequency",
+    "apply_fir",
+    "comb_filter",
+    "moving_average",
+    "load_audio",
+    "load_fir_coefficients",
+    "add_white_noise",
+    "generate_pure_tones",
+    "graficar_temp",
+    "suma_tonos_puros",
+    "suma_musical",
+    "filtro_media_movil",
+    "filtro_peine",
+    "filtro_fir",
+    "filtrar_frecuencia_manual",
+]
+
+
 # --- Tests Locales (Solo se ejecutan si se corre el archivo directamente) ---
 
 if __name__ == "__main__":

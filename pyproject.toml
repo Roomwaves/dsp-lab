@@ -38,4 +38,5 @@ select = ["E", "F", "I"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-"*.ipynb" = ["E501"]
+"*.ipynb" = ["E501", "E402", "F401", "I001"]
+"faculty/**/functions.py" = ["F401"]

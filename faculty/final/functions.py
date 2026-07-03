@@ -32,6 +32,22 @@ def evaluar_coherencia(x, y, fs=44100, window_size=1024):
     return freqs, coh
 
 
+__all__ = [
+    "compute_fft",
+    "compute_frequency_response",
+    "compute_coherence",
+    "apply_fir",
+    "load_audio",
+    "load_fir_coefficients",
+    "plot_coherence",
+    "plot_frequency_response",
+    "add_white_noise",
+    "generate_pure_tones",
+    "identificar_sistema",
+    "evaluar_coherencia",
+]
+
+
 if __name__ == "__main__":
     print("Corriendo pruebas locales en faculty/final/functions.py...")
     import numpy as np
