@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { watch, computed, ref, onMounted } from 'vue';
-import { IconUpload, IconScissor } from '@tabler/icons-vue';
+import { IconUpload, IconScissors } from '@tabler/icons-vue';
 import { useFilterStore } from '../../../stores/useFilterStore';
 import FrequencyResponsePlot from '../../plots/FrequencyResponsePlot.vue';
 import WaveformPlot from '../../plots/WaveformPlot.vue';
@@ -166,7 +166,7 @@ function handleTruncate() {
               <span class="param-label">Truncar N:</span>
               <input v-model.number="truncateN" type="number" min="1" :max="filterStore.firCoefficients.length" class="num-input-small" />
               <button class="btn-utility" @click="handleTruncate">
-                <IconScissor size="12" />
+                <IconScissors size="12" />
                 Truncar
               </button>
             </div>

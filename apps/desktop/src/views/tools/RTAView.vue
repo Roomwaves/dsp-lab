@@ -24,8 +24,8 @@ const avgModes: { value: AvgMode; label: string }[] = [
   { value: 16, label: '16' },
 ];
 
-const frequencies = computed(() => signalStore.fftResult.frequencies);
-const magnitudes = computed(() => signalStore.fftResult.magnitudes);
+const frequencies = computed(() => signalStore.fftFrequencies);
+const magnitudes = computed(() => signalStore.fftMagnitudes);
 const sampleRateLabel = computed(() => {
   const sr = audioStore.sampleRate;
   return sr >= 1000 ? `${sr / 1000} kHz` : `${sr} Hz`;

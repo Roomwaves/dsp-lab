@@ -187,7 +187,7 @@ export const useAudioStore = defineStore('audio', () => {
       fftResult.value = result
       currentLevel_dBFS.value = level
       
-      signalStore.frequencies = result.frequencies
+      signalStore.fftFrequencies = result.frequencies
       signalStore.fftMagnitudes = result.magnitudes_db
     }, 50)
   }
@@ -442,7 +442,7 @@ export const useAudioStore = defineStore('audio', () => {
       currentLevel_dBFS.value  = result.level_dbfs
 
       // Actualizar signalStore para que RTAView y otros lo consuman
-      signalStore.frequencies   = result.frequencies
+      signalStore.fftFrequencies = result.frequencies
       signalStore.fftMagnitudes = result.magnitudes_db
     })
 
