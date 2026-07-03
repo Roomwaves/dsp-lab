@@ -3,25 +3,18 @@
 # DO NOT duplicate core implementations here.
 
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-import soundfile as sf
-import scipy.signal as scipy
 
-# 1. Imports and re-exports from core/dsp
-from core.dsp.filters import moving_average, comb_filter, apply_fir, truncate_fir
+import matplotlib.pyplot as plt
+import numpy as np
 from core.dsp.analysis import (
-    compute_fft,
     compute_frequency_response,
-    compute_magnitude_db,
-    compute_phase,
-    convolve_time,
     convolve_frequency,
 )
-from core.dsp.signals import generate_pure_tones, add_white_noise, generate_impulse
-from core.dsp.coherence import compute_psd, compute_cpsd, compute_coherence
-from core.dsp.io import load_audio, save_audio, load_fir_coefficients
-from core.dsp.plots import plot_signal, plot_spectrum, plot_frequency_response, plot_coherence
+
+# 1. Imports and re-exports from core/dsp
+from core.dsp.filters import apply_fir, comb_filter, moving_average
+from core.dsp.io import load_audio, load_fir_coefficients
+from core.dsp.signals import generate_pure_tones
 
 # 2. Compatibility wrappers for the team's notebook
 
