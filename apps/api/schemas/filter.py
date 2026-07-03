@@ -29,3 +29,19 @@ class ImpulseResponseParams(BaseModel):
     filter_type: Literal["moving_average", "comb", "fir"]
     params: dict[str, Any] = Field(..., description="Parameters for the specific filter") # noqa: E501
     N: int = Field(default=100, gt=0, description="Length of the impulse response to generate") # noqa: E501
+
+class MovingAverageResponseParams(BaseModel):
+    M: int = Field(..., gt=0, description="Window size M")
+    passes: int = Field(default=1, ge=1, le=3, description="Number of passes")
+    fs: float = Field(default=44100.0, gt=0, description="Sample rate in Hz")
+
+class CombResponseParams(BaseModel):
+    b0: float = Field(default=1.0)
+    b1: float = Field(default=0.0)
+    b2: float = Field(default=0.25)
+    fs: float = Field(default=44100.0, gt=0, description="Sample rate in Hz")
+
+class FIRResponseParams(BaseModel):
+    coefficients: list[float] = Field(default_factory=list, description="FIR filter coefficients")
+    fs: float = Field(default=44100.0, gt=0, description="Sample rate in Hz")
+

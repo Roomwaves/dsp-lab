@@ -81,6 +81,10 @@ class GenerateSignalInput(BaseModel):
     f_end: float = Field(default=20000.0, gt=0, alias="fEnd")
     sweep_type: str = Field(default="linear", alias="sweepType")
 
+    # For square & triangle waves
+    duty: float = Field(default=0.5, ge=0.01, le=0.99, description="Duty cycle for square wave")
+    width: float = Field(default=0.5, ge=0.0, le=1.0, description="Width for triangle wave")
+
     # Optional noise addition
     apply_noise: bool = Field(default=False, alias="applyNoise")
     snr_db: float = Field(default=20.0, alias="snrDb")

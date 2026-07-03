@@ -103,6 +103,7 @@ def generate_signal_endpoint(body: GenerateSignalInput) -> GeneratedSignalOutput
                 amplitude=body.amplitude,
                 fs=body.fs,
                 duration=body.duration,
+                duty=body.duty,
             )
         elif sig_type == "triangle":
             samples = generate_triangle_wave(
@@ -110,6 +111,7 @@ def generate_signal_endpoint(body: GenerateSignalInput) -> GeneratedSignalOutput
                 amplitude=body.amplitude,
                 fs=body.fs,
                 duration=body.duration,
+                width=body.width,
             )
         elif sig_type == "white-noise":
             samples = generate_white_noise(
@@ -123,6 +125,10 @@ def generate_signal_endpoint(body: GenerateSignalInput) -> GeneratedSignalOutput
                 amplitude=body.amplitude, fs=body.fs, duration=body.duration
             )
         elif sig_type == "sweep":
+            if body.sweep_type == "logarithmic" and (body.f_start <= 0 or body.f_end <= 0):
+                raise HTTPException(
+                    status_code=400, detail="Frecuencias inicial y final deben ser > 0 para barrido logarítmico"
+                )
             samples = generate_sweep(
                 f_start=body.f_start,
                 f_end=body.f_end,

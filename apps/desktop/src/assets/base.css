@@ -23,6 +23,17 @@ body {
   box-sizing: border-box;
 }
 
+/* ── Global Select & Option styling (dark mode fix) ────────── */
+select {
+  background-color: var(--surface-3, #1e1e21);
+  color: var(--text-white, #ffffff);
+}
+
+select option {
+  background-color: var(--surface-3, #1e1e21);
+  color: var(--text-white, #ffffff);
+}
+
 /* ── Minimum font size enforcement (DESIGN_GUIDE §2-B) ──────── */
 /* No user-facing text below 13px */
 

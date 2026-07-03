@@ -75,6 +75,12 @@ export const api = {
   filterResponse: (type: 'moving-average' | 'comb' | 'fir', params: Record<string, unknown>) =>
     post<FrequencyResponseOutput>(`/filters/${type}/response`, params),
 
+  impulseResponse: (filterType: 'moving_average' | 'comb' | 'fir', params: Record<string, unknown>, N = 100) =>
+    post<FilterOutput>('/filters/impulse-response', { filter_type: filterType, params, N }),
+
+  truncateFir: (coefficients: number[], N: number) =>
+    post<FilterOutput>('/filters/fir/truncate', { coefficients, N }),
+
   generatePureTones: (frequencies: number[], amplitudes: number[], fs: number, duration: number) =>
     post<GeneratedSignalOutput>('/signals/pure-tones', { frequencies, amplitudes, fs, duration }),
 
@@ -89,6 +95,8 @@ export const api = {
     frequencies?: number[]
     amplitudes?: number[]
     frequency?: number
+    duty?: number
+    width?: number
     fStart?: number
     fEnd?: number
     sweepType?: string

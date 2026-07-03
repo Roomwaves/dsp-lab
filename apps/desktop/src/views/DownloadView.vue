@@ -27,6 +27,8 @@ interface Platform {
   formats: DownloadFormat[];
 }
 
+const BASE_GITHUB_RELEASE = 'https://github.com/Roomwaves/dsp-lab/releases/latest/download';
+
 const platforms = computed<Platform[]>(() => [
   {
     id: 'linux',
@@ -36,13 +38,13 @@ const platforms = computed<Platform[]>(() => [
       {
         label: 'AppImage',
         ext: '.AppImage',
-        url: import.meta.env.VITE_DOWNLOAD_URL_LINUX_APPIMAGE,
+        url: import.meta.env.VITE_DOWNLOAD_URL_LINUX_APPIMAGE || `${BASE_GITHUB_RELEASE}/Roomwaves-DSP-Linux.AppImage`,
         note: 'Universal — no install required',
       },
       {
         label: 'Debian / Ubuntu',
         ext: '.deb',
-        url: import.meta.env.VITE_DOWNLOAD_URL_LINUX_DEB,
+        url: import.meta.env.VITE_DOWNLOAD_URL_LINUX_DEB || `${BASE_GITHUB_RELEASE}/Roomwaves-DSP-Linux.deb`,
         note: 'dpkg / apt compatible',
       },
     ],
@@ -55,7 +57,7 @@ const platforms = computed<Platform[]>(() => [
       {
         label: 'Disk Image',
         ext: '.dmg',
-        url: import.meta.env.VITE_DOWNLOAD_URL_MAC_DMG,
+        url: import.meta.env.VITE_DOWNLOAD_URL_MAC_DMG || `${BASE_GITHUB_RELEASE}/Roomwaves-DSP-macOS.dmg`,
         note: 'Universal — Apple Silicon & Intel',
       },
     ],
@@ -68,13 +70,13 @@ const platforms = computed<Platform[]>(() => [
       {
         label: 'Installer',
         ext: '.exe',
-        url: import.meta.env.VITE_DOWNLOAD_URL_WINDOWS_EXE,
+        url: import.meta.env.VITE_DOWNLOAD_URL_WINDOWS_EXE || `${BASE_GITHUB_RELEASE}/Roomwaves-DSP-Setup.exe`,
         note: 'NSIS — recommended',
       },
       {
         label: 'MSI Package',
         ext: '.msi',
-        url: import.meta.env.VITE_DOWNLOAD_URL_WINDOWS_MSI,
+        url: import.meta.env.VITE_DOWNLOAD_URL_WINDOWS_MSI || `${BASE_GITHUB_RELEASE}/Roomwaves-DSP.msi`,
         note: 'For enterprise / silent installs',
       },
     ],
